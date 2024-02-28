@@ -18,6 +18,20 @@ app.use(bodyParser.json());
 
 const messages = [];
 
+
+const generateRandomMessage = () => {
+    const randomText = `Random message ${Math.floor(Math.random() * 100)}`;
+    const randomUsername = `User${Math.floor(Math.random() * 10)}`;
+    return { id: messages.length + 1, text: randomText, username: randomUsername };
+};
+
+
+setInterval(() => {
+    const randomMessage = generateRandomMessage();
+    messages.push(randomMessage);
+    io.emit('newMessage', randomMessage);
+}, 3000);
+
 io.on('connection', (socket) => {
     console.log('Client connected');
 
@@ -41,8 +55,8 @@ app.get('/api/messages', (req, res) => {
 
 
 app.post('/api/messages', (req, res) => {
-    const { text } = req.body;
-    const newMessage = { id: messages.length + 1, text };
+    const { text, username } = req.body;
+    const newMessage = { id: messages.length + 1, text, username };
     messages.push(newMessage);
     io.emit('newMessage', newMessage);
     res.json(newMessage);
