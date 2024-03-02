@@ -1,12 +1,13 @@
-const express = require('express');
-const http = require('http');
-const socketIO = require('socket.io');
-const bodyParser = require('body-parser');
-const cors = require('cors');
+import express from 'express'
+import http from 'http'
+import * as socketIO from 'socket.io';
+import bodyParser from 'body-parser'
+import mongoose from 'mongoose';
+import {Server} from "socket.io";
 
 const app = express();
 const server = http.createServer(app);
-const io = socketIO(server, {
+const io = new Server(server, {
     cors: {
         origin: 'http://localhost:3000',
         methods: ['GET', 'POST'],
@@ -16,46 +17,59 @@ const io = socketIO(server, {
 
 app.use(bodyParser.json());
 
-const messages = [];
+mongoose.connect('mongodb+srv://<alfaran>:<12345678den>@cluster0.kuuevk3.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0');
+const db = mongoose.connection;
 
 
-const generateRandomMessage = () => {
-    const randomText = `Random message ${Math.floor(Math.random() * 100)}`;
-    const randomUsername = `User${Math.floor(Math.random() * 10)}`;
-    return { id: messages.length + 1, text: randomText, username: randomUsername };
-};
+db.on('open', () => {
+    console.log('Connected to MongoDB!');
+});
 
 
-setInterval(() => {
-    const randomMessage = generateRandomMessage();
-    messages.push(randomMessage);
-    io.emit('newMessage', randomMessage);
-}, 3000);
+db.on('error', (err) => {
+    console.error(`MongoDB connection error: ${err}`);
+});
+
+
+db.on('disconnected', () => {
+    console.log('Disconnected from MongoDB');
+});
+
+
+db.on('close', () => {
+    console.log('Connection to MongoDB closed');
+});
+
+console.log(`Initial connection status: ${db.readyState}`);
+
+const userSchema = new mongoose.Schema({
+    name: String,
+    nickname: String,
+});
+
+// Создание модели пользователя
+const UserModel = mongoose.model('User', userSchema);
 
 io.on('connection', (socket) => {
     console.log('Client connected');
-
-    socket.emit('initialMessages', messages);
-
-    socket.on('sendMessage', (newMessage) => {
-        const formattedMessage = { id: messages.length + 1, text: newMessage.text };
-        messages.push(formattedMessage);
-        io.emit('newMessage', formattedMessage);
-    });
 
     socket.on('disconnect', () => {
         console.log('Client disconnected');
     });
 });
 
-app.get('/api/messages', (req, res) => {
 
-    res.json(messages);
-});
-
-
-app.post('/api/messages', (req, res) => {
+// Обработчик POST-запроса для /api/messages
+app.post('/api/messages', async (req, res) => {
     const { text, username } = req.body;
+
+    // Сохранение пользователя в базу данных, если он не существует
+    let user = await UserModel.findOne({ nickname: username });
+    if (!user) {
+        user = await UserModel.create({ name: 'DefaultName', nickname: username });
+    }
+
+    // Отправка сообщения с учетом пользователя
     const newMessage = { id: messages.length + 1, text, username };
     messages.push(newMessage);
     io.emit('newMessage', newMessage);
@@ -65,7 +79,3 @@ app.post('/api/messages', (req, res) => {
 server.listen(3001, () => {
     console.log('Server is running on port 3001');
 });
-
-app.options('/api/messages', cors());
-app.use(bodyParser.json());
-app.use(cors());
