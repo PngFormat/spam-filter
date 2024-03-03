@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import io from 'socket.io-client';
+import RegistrationForm from "./RegistrationForm";
 
 interface Message {
     id: number;
@@ -22,15 +23,7 @@ const ChatRoom: React.FC = () => {
     const socket = io('http://localhost:3001', { transports: ['websocket'] });
 
     useEffect(() => {
-        const name = prompt('Enter your name:');
-        const nickname = prompt('Enter your nickname:');
-
-        if (name && nickname) {
-            const user: User = { id: Date.now(), name, nickname };
-            setCurrentUser(user);
-        } else {
-            alert('Please enter valid name and nickname.');
-        }
+        loginUser();
     }, []);
 
     useEffect(() => {
@@ -46,6 +39,27 @@ const ChatRoom: React.FC = () => {
             socket.disconnect();
         };
     }, [socket]);
+
+    const loginUser = async () => {
+        try {
+            const users = await fetch('/api/users').then((response) => response.json());
+            console.log('List of users:', users);
+        } catch (error) {
+            console.error('Error fetching users:', error);
+        }
+    };
+
+    const handleRegister = (userData: { name: string; nickname: string }) => {
+        axios
+            .post('http://localhost:3001/api/users', userData)
+            .then((response) => {
+                const newUser = response.data;
+                setCurrentUser(newUser);
+            })
+            .catch((error) => {
+                console.error('Error creating user:', error);
+            });
+    };
 
     const handleSendMessage = () => {
         if (!newMessage.trim()) {
@@ -65,6 +79,23 @@ const ChatRoom: React.FC = () => {
         }
     };
 
+
+
+
+    const sendMessage = (message: any) => {
+        socket.emit('sendMessage', { text: message });
+    };
+
+
+    socket.on('newMessage', (message) => {
+        console.log('New message:', message);
+
+    });
+
+
+
+
+
     return (
         <div>
             <h2>Chat Room</h2>
@@ -82,13 +113,26 @@ const ChatRoom: React.FC = () => {
                 ))}
             </ul>
             <div>
-                <input
-                    type="text"
-                    placeholder="Type your message..."
-                    value={newMessage}
-                    onChange={(e) => setNewMessage(e.target.value)}
-                />
-                <button onClick={handleSendMessage}>Send</button>
+
+                <div>
+                    <input
+                        type="text"
+                        placeholder="Type your message..."
+                        value={newMessage}
+                        onChange={(e) => setNewMessage(e.target.value)}
+                    />
+                    {currentUser && <button onClick={handleSendMessage}>Send</button>}
+                </div>
+                <div>
+                    <h2>Chat Room</h2>
+                    {!currentUser && <RegistrationForm onRegister={handleRegister} />}
+                    {currentUser && (
+                        <div>
+                            <p>Welcome, {currentUser.name} ({currentUser.nickname})!</p>
+                        </div>
+                    )}
+                    {/* ... (Render messages and input form) */}
+                </div>
             </div>
         </div>
     );
