@@ -1,4 +1,3 @@
-// RegistrationForm.tsx
 import React, { useState } from 'react';
 
 interface RegistrationFormProps {

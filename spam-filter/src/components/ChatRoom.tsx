@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, {useState, useEffect, useCallback} from 'react';
 import axios from 'axios';
 import io from 'socket.io-client';
 import RegistrationForm from "./RegistrationForm";
@@ -49,7 +49,7 @@ const ChatRoom: React.FC = () => {
         }
     };
 
-    const handleRegister = (userData: { name: string; nickname: string }) => {
+    const handleRegister = useCallback((userData: { name: string; nickname: string }) => {
         axios
             .post('http://localhost:3001/api/users', userData)
             .then((response) => {
@@ -59,7 +59,8 @@ const ChatRoom: React.FC = () => {
             .catch((error) => {
                 console.error('Error creating user:', error);
             });
-    };
+    }, [setCurrentUser]);
+
 
     const handleSendMessage = () => {
         if (!newMessage.trim()) {
@@ -73,7 +74,10 @@ const ChatRoom: React.FC = () => {
                     setMessages((prevMessages) => [...prevMessages, response.data]);
                     setNewMessage('');
                 })
-                .catch(error => console.error('Error sending message:', error));
+                .catch(error => {
+                    console.error('Error sending message:', error);
+                    alert('Failed to send message. Please try again later.');
+                });
         } else {
             alert('You need to log in first.');
         }
@@ -99,41 +103,37 @@ const ChatRoom: React.FC = () => {
     return (
         <div>
             <h2>Chat Room</h2>
+
+            {!currentUser && (
+                <div>
+                    <RegistrationForm onRegister={handleRegister} />
+                </div>
+            )}
+
             {currentUser && (
                 <div>
                     <p>Welcome, {currentUser.name} ({currentUser.nickname})!</p>
+
+                    <ul>
+                        {messages.map(message => (
+                            <li key={message.id}>
+                                <strong>{message.username}: </strong>
+                                {message.text}
+                            </li>
+                        ))}
+                    </ul>
+
+                    <div>
+                        <input
+                            type="text"
+                            placeholder="Type your message..."
+                            value={newMessage}
+                            onChange={(e) => setNewMessage(e.target.value)}
+                        />
+                        <button onClick={handleSendMessage}>Send</button>
+                    </div>
                 </div>
             )}
-            <ul>
-                {messages.map(message => (
-                    <li key={message.id}>
-                        <strong>{message.username}: </strong>
-                        {message.text}
-                    </li>
-                ))}
-            </ul>
-            <div>
-
-                <div>
-                    <input
-                        type="text"
-                        placeholder="Type your message..."
-                        value={newMessage}
-                        onChange={(e) => setNewMessage(e.target.value)}
-                    />
-                    {currentUser && <button onClick={handleSendMessage}>Send</button>}
-                </div>
-                <div>
-                    <h2>Chat Room</h2>
-                    {!currentUser && <RegistrationForm onRegister={handleRegister} />}
-                    {currentUser && (
-                        <div>
-                            <p>Welcome, {currentUser.name} ({currentUser.nickname})!</p>
-                        </div>
-                    )}
-                    {/* ... (Render messages and input form) */}
-                </div>
-            </div>
         </div>
     );
 };
