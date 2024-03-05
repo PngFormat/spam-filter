@@ -1,17 +1,17 @@
 import React, { useState } from 'react';
 
 interface RegistrationFormProps {
-    onRegister: (userData: { name: string; nickname: string }) => void;
+    onRegister: (userData: { name: string; nickname: string; password: string; }) => void;
 }
 
 const RegistrationForm: React.FC<RegistrationFormProps> = ({ onRegister }) => {
     const [name, setName] = useState('');
     const [nickname, setNickname] = useState('');
-
+    const [ password, setPassword] = useState('');
 
     const handleRegister = () => {
         if (name.trim() && nickname.trim()) {
-            onRegister({ name, nickname });
+            onRegister({ name, nickname, password });
         } else {
             alert('Please enter a valid name and nickname.');
         }

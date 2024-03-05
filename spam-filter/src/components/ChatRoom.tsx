@@ -49,7 +49,7 @@ const ChatRoom: React.FC = () => {
         }
     };
 
-    const handleRegister = useCallback((userData: { name: string; nickname: string }) => {
+    const handleRegister = useCallback((userData: { username: string; email: string; password: string }) => {
         axios
             .post('http://localhost:3001/api/users', userData)
             .then((response) => {
@@ -60,6 +60,7 @@ const ChatRoom: React.FC = () => {
                 console.error('Error creating user:', error);
             });
     }, [setCurrentUser]);
+
 
 
     const handleSendMessage = () => {
@@ -106,7 +107,13 @@ const ChatRoom: React.FC = () => {
 
             {!currentUser && (
                 <div>
-                    <RegistrationForm onRegister={handleRegister} />
+                    <RegistrationForm
+                        onRegister={(userData) => handleRegister({
+                            username: userData.name,
+                            email: userData.nickname,
+                            password: userData.password
+                        })}
+                    />
                 </div>
             )}
 

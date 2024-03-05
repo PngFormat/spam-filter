@@ -6,9 +6,18 @@ import mongoose from 'mongoose';
 import { Server } from 'socket.io';
 import bcrypt from 'bcrypt';
 import cors from 'cors'
+import { authenticateToken } from './middleware/authMiddleware.js';
 
-import generateAuthToken from '../backend/auth-jwt-token.js';
 
+// import generateAuthToken from '../backend/auth-jwt-token.js';
+import jwt from "jsonwebtoken";
+const secretKey = process.env.JWT_SECRET_KEY || 'default-secret-key';
+
+const generateAuthToken = (user) => {
+    const token = jwt.sign({ userId: user._id }, secretKey, { expiresIn: '1h' });
+    return token;
+};
+const existingUser = await UserModel.findOne({ $or: [{ username }, { email }] });
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
@@ -19,6 +28,7 @@ const io = new Server(server, {
     },
 });
 
+
 app.use(cors({
     origin: 'http://localhost:3000',
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
@@ -26,6 +36,11 @@ app.use(cors({
 }));
 app.use(bodyParser.json());
 const messages = [];
+
+app.use((req, res, next) => {
+    console.log(`Received ${req.method} request at ${req.url}`);
+    next();
+});
 
 mongoose.connect('mongodb+srv://alfaran:12345678den4@cluster0.kuuevk3.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0');
 const db = mongoose.connection;
@@ -95,6 +110,10 @@ app.post('/api/register', async (req, res) => {
     const { username, email, password } = req.body;
 
     try {
+        if (!password) {
+            return res.status(400).json({ message: 'Password is required' });
+        }
+
         const hashedPassword = await bcrypt.hash(password, 10);
         const newUser = new UserModel({ username, email, password: hashedPassword });
 
@@ -105,6 +124,10 @@ app.post('/api/register', async (req, res) => {
         console.error(error);
         res.status(500).json({ message: 'Error registering user' });
     }
+});
+
+app.get('/api/protected-route', authenticateToken, (req, res) => {
+    res.json({ message: 'This is a protected route', user: req.user });
 });
 
 app.post('/api/login', async (req, res) => {
@@ -152,19 +175,12 @@ app.get('/api/messages/:userId', async (req, res) => {
 app.post('/api/users', async (req, res) => {
     const { username, email, password } = req.body;
 
+    if (!username || !email || !password) {
+        return res.status(400).json({ message: 'Username, email, and password are required' });
+    }
+
     try {
-        const existingUser = await UserModel.findOne({ username });
-
-        if (existingUser) {
-            return res.status(400).json({ message: 'Username is already taken' });
-        }
-
-        const hashedPassword = await bcrypt.hash(password, 10);
-
-
-        const newUser = new UserModel({ username, email, password: hashedPassword });
-
-        await newUser.save();
+        // Your registration logic here
 
         res.status(201).json({ message: 'User registered successfully' });
     } catch (error) {
