@@ -20,7 +20,13 @@ const ChatRoom: React.FC = () => {
     const [messages, setMessages] = useState<Message[]>([]);
     const [newMessage, setNewMessage] = useState<string>('');
     const [currentUser, setCurrentUser] = useState<User | null>(null);
-    const socket = io('http://localhost:3001', { transports: ['websocket'] });
+    const [name, setName] = useState<string>('');
+    const socket = io('http://localhost:3001', {
+        transports: ['websocket'],
+        reconnection: true,
+        reconnectionAttempts: 3,
+    });
+
 
     useEffect(() => {
         loginUser();
@@ -49,17 +55,25 @@ const ChatRoom: React.FC = () => {
         }
     };
 
+
     const handleRegister = useCallback((userData: { username: string; email: string; password: string }) => {
         axios
             .post('http://localhost:3001/api/users', userData)
             .then((response) => {
-                const newUser = response.data;
+                const newUser = response.data.message;
+                console.log('New user:', newUser);
                 setCurrentUser(newUser);
+                const { name } = newUser || {};
+                setName(name);
+
+
+                console.log(`Welcome, ${name}!`);
             })
             .catch((error) => {
                 console.error('Error creating user:', error);
             });
-    }, [setCurrentUser]);
+    }, [setCurrentUser, setName]);
+
 
 
 
@@ -119,7 +133,7 @@ const ChatRoom: React.FC = () => {
 
             {currentUser && (
                 <div>
-                    <p>Welcome, {currentUser.name} ({currentUser.nickname})!</p>
+                    <p>Welcome, {currentUser.id} ({currentUser.nickname})!</p>
 
                     <ul>
                         {messages.map(message => (

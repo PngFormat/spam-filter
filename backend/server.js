@@ -1,6 +1,5 @@
 import express from 'express';
 import http from 'http';
-import * as socketIO from 'socket.io';
 import bodyParser from 'body-parser';
 import mongoose from 'mongoose';
 import { Server } from 'socket.io';
@@ -17,7 +16,7 @@ const generateAuthToken = (user) => {
     const token = jwt.sign({ userId: user._id }, secretKey, { expiresIn: '1h' });
     return token;
 };
-const existingUser = await UserModel.findOne({ $or: [{ username }, { email }] });
+
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
@@ -175,15 +174,14 @@ app.get('/api/messages/:userId', async (req, res) => {
 app.post('/api/users', async (req, res) => {
     const { username, email, password } = req.body;
 
-    if (!username || !email || !password) {
-        return res.status(400).json({ message: 'Username, email, and password are required' });
-    }
-
     try {
-        // Your registration logic here
+        const hashedPassword = await bcrypt.hash(password, 10);
+        const newUser = new UserModel({ username, email, password: hashedPassword });
+        await newUser.save();
 
-        res.status(201).json({ message: 'User registered successfully' });
+        res.status(201).json({ message: 'User registered successfully', user: newUser });
     } catch (error) {
+
         console.error(error);
         res.status(500).json({ message: 'Error registering user' });
     }

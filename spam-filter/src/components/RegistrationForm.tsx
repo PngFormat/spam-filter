@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
 
 interface RegistrationFormProps {
-    onRegister: (userData: { name: string; nickname: string; password: string; }) => void;
+    onRegister: (userData: { name: string; nickname: string; password: string }) => void;
 }
 
 const RegistrationForm: React.FC<RegistrationFormProps> = ({ onRegister }) => {
     const [name, setName] = useState('');
     const [nickname, setNickname] = useState('');
-    const [ password, setPassword] = useState('');
+    const [password, setPassword] = useState('');
 
     const handleRegister = () => {
         if (name.trim() && nickname.trim()) {
@@ -30,6 +30,14 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onRegister }) => {
                 <input type="text" value={nickname} onChange={(e) => setNickname(e.target.value)} />
             </label>
             <br />
+            <label>
+                Password:
+                <input
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                />
+            </label>
             <button onClick={handleRegister}>Register</button>
         </div>
     );
