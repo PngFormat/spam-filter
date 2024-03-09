@@ -1,4 +1,6 @@
+
 import React, { useState } from 'react';
+import styles from '../styles/Registration.module.css';
 
 interface RegistrationFormProps {
     onRegister: (userData: { name: string; nickname: string; password: string }) => void;
@@ -17,28 +19,41 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onRegister }) => {
         }
     };
 
+    const classes = styles;
+
     return (
-        <div>
-            <h2>Registration</h2>
-            <label>
+        <div className={classes.formContainer}>
+            <h2 className={classes.formHeader}>Registration</h2>
+            <label className={classes.formLabel}>
                 Name:
-                <input type="text" value={name} onChange={(e) => setName(e.target.value)} />
+                <input
+                    type="text"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className={classes.formInput}
+                />
             </label>
-            <br />
-            <label>
+            <label className={classes.formLabel}>
                 Nickname:
-                <input type="text" value={nickname} onChange={(e) => setNickname(e.target.value)} />
+                <input
+                    type="text"
+                    value={nickname}
+                    onChange={(e) => setNickname(e.target.value)}
+                    className={classes.formInput}
+                />
             </label>
-            <br />
-            <label>
+            <label className={classes.formLabel}>
                 Password:
                 <input
                     type="password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
+                    className={classes.formInput}
                 />
             </label>
-            <button onClick={handleRegister}>Register</button>
+            <button onClick={handleRegister} className={classes.formButton}>
+                Register
+            </button>
         </div>
     );
 };

@@ -2,6 +2,10 @@ import React, {useState, useEffect, useCallback} from 'react';
 import axios from 'axios';
 import io from 'socket.io-client';
 import RegistrationForm from "./RegistrationForm";
+import {Button,Paper, TextField, Theme, Typography} from "@mui/material";
+import styles from '../styles/Home.module.css'
+
+
 
 interface Message {
     id: number;
@@ -17,6 +21,8 @@ interface User {
 
 
 const ChatRoom: React.FC = () => {
+    const classes = styles;
+
     const [messages, setMessages] = useState<Message[]>([]);
     const [newMessage, setNewMessage] = useState<string>('');
     const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -116,8 +122,10 @@ const ChatRoom: React.FC = () => {
 
 
     return (
-        <div>
-            <h2>Chat Room</h2>
+        <Paper className={classes.root} elevation={3}>
+            <Typography variant="h5" className={classes.welcomeMessage}>
+                Chat Room
+            </Typography>
 
             {!currentUser && (
                 <div>
@@ -133,29 +141,34 @@ const ChatRoom: React.FC = () => {
 
             {currentUser && (
                 <div>
-                    <p>Welcome, {currentUser.id} ({currentUser.nickname})!</p>
+                    <Typography variant="body1" paragraph>
+                        Welcome, {currentUser.id} ({currentUser.nickname})!
+                    </Typography>
 
-                    <ul>
-                        {messages.map(message => (
-                            <li key={message.id}>
+                    <ul className={classes.messageList}>
+                        {messages.map((message) => (
+                            <li key={message.id} className={classes.messageItem}>
                                 <strong>{message.username}: </strong>
                                 {message.text}
                             </li>
                         ))}
                     </ul>
 
-                    <div>
-                        <input
+                    <div className={classes.inputContainer}>
+                        <TextField
+                            className={classes.input}
                             type="text"
                             placeholder="Type your message..."
                             value={newMessage}
                             onChange={(e) => setNewMessage(e.target.value)}
                         />
-                        <button onClick={handleSendMessage}>Send</button>
+                        <Button variant="contained" color="primary" onClick={handleSendMessage}>
+                            Send
+                        </Button>
                     </div>
                 </div>
             )}
-        </div>
+        </Paper>
     );
 };
 
