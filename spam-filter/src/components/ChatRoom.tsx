@@ -107,18 +107,6 @@ const ChatRoom: React.FC = () => {
 
 
 
-    const sendMessage = (message: any) => {
-        socket.emit('sendMessage', { text: message });
-    };
-
-
-    socket.on('newMessage', (message) => {
-        console.log('New message:', message);
-
-    });
-
-
-
 
 
     return (

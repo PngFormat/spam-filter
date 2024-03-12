@@ -46,14 +46,14 @@ const db = mongoose.connection;
 
 io.on('connection', (socket) => {
     console.log('Client connected');
-    const { user } = socket.request;
 
     socket.on('disconnect', () => {
         console.log('Client disconnected');
     });
 
     socket.on('sendMessage', (message) => {
-        const newMessage = { userId: user._id, text: message.text, username: user.username };
+        // Handle sending messages
+        const newMessage = { text: message.text, username: message.username };
         io.emit('newMessage', newMessage);
     });
 });
@@ -159,33 +159,22 @@ app.get('/api/messages/:userId', async (req, res) => {
     }
 });
 
-app.get('/api/messages/:userId', async (req, res) => {
-    try {
-        const userId = req.params.userId;
-        const messages = await MessageModel.find({ userId }).sort({ createdAt: 'asc' });
 
-        res.status(200).json(messages);
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: 'Error fetching chat history' });
-    }
-});
-
-app.post('/api/users', async (req, res) => {
-    const { username, email, password } = req.body;
-
-    try {
-        const hashedPassword = await bcrypt.hash(password, 10);
-        const newUser = new UserModel({ username, email, password: hashedPassword });
-        await newUser.save();
-
-        res.status(201).json({ message: 'User registered successfully', user: newUser });
-    } catch (error) {
-
-        console.error(error);
-        res.status(500).json({ message: 'Error registering user' });
-    }
-});
+// app.post('/api/users', async (req, res) => {
+//     const { username, email, password } = req.body;
+//
+//     try {
+//         const hashedPassword = await bcrypt.hash(password, 10);
+//         const newUser = new UserModel({ username, email, password: hashedPassword });
+//         await newUser.save();
+//
+//         res.status(201).json({ message: 'User registered successfully', user: newUser });
+//     } catch (error) {
+//
+//         console.error(error);
+//         res.status(500).json({ message: 'Error registering user' });
+//     }
+// });
 
 
 server.listen(3001, () => {

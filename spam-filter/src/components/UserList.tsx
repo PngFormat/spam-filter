@@ -1,9 +1,7 @@
-
 import React from 'react';
 import { List, ListItem, ListItemText, Paper, Typography } from '@mui/material';
 
-// @ts-ignore
-const UserList = ({ users  }) => {
+const UserList: React.FC<{ users: any[] }> = ({ users }) => {
     return (
         <Paper elevation={3} style={{ padding: 16, marginTop: 16 }}>
             <Typography variant="h6" gutterBottom>
