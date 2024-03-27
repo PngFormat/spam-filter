@@ -38,19 +38,19 @@ const ChatRoom: React.FC = () => {
         loginUser();
     }, []);
 
-    useEffect(() => {
-        axios.get('http://localhost:3001/api/messages')
-            .then(response => setMessages(response.data))
-            .catch(error => console.error('Error fetching initial messages:', error));
-
-        socket.on('newMessage', (newMessage) => {
-            setMessages((prevMessages) => [...prevMessages, newMessage]);
-        });
-
-        return () => {
-            socket.disconnect();
-        };
-    }, [socket]);
+    // useEffect(() => {
+    //     axios.get('http://localhost:3001/api/messages')
+    //         .then(response => setMessages(response.data))
+    //         .catch(error => console.error('Error fetching initial messages:', error));
+    //
+    //     socket.on('newMessage', (newMessage) => {
+    //         setMessages((prevMessages) => [...prevMessages, newMessage]);
+    //     });
+    //
+    //     return () => {
+    //         socket.disconnect();
+    //     };
+    // }, [socket]);
 
     const loginUser = async () => {
         try {
@@ -64,7 +64,7 @@ const ChatRoom: React.FC = () => {
 
     const handleRegister = useCallback((userData: { username: string; email: string; password: string }) => {
         axios
-            .post('http://localhost:3001/api/users', userData)
+            .post('http://localhost:3001/api/register', userData)
             .then((response) => {
                 const newUser = response.data.message;
                 console.log('New user:', newUser);

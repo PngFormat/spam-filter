@@ -12,6 +12,7 @@ const UserPage = () => {
             try {
                 const response = await axios.get('http://localhost:3001/api/users');
                 setUsers(response.data);
+                console.log(response)
             } catch (error) {
                 console.error('Error fetching users:', error);
             }
