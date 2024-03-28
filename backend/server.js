@@ -5,11 +5,9 @@ import mongoose from 'mongoose';
 import { Server } from 'socket.io';
 import bcrypt from 'bcrypt';
 import cors from 'cors'
+import jwt from "jsonwebtoken";
 import { authenticateToken } from './middleware/authMiddleware.js';
 
-
-// import generateAuthToken from '../backend/auth-jwt-token.js';
-import jwt from "jsonwebtoken";
 const secretKey = process.env.JWT_SECRET_KEY || 'default-secret-key';
 
 const generateAuthToken = (user) => {
@@ -26,7 +24,6 @@ const io = new Server(server, {
         credentials: true,
     },
 });
-
 
 app.use(cors({
     origin: 'http://localhost:3000',
@@ -46,14 +43,13 @@ const db = mongoose.connection;
 
 io.on('connection', (socket) => {
     console.log('Client connected');
-    const { user } = socket.request;
 
     socket.on('disconnect', () => {
         console.log('Client disconnected');
     });
 
     socket.on('sendMessage', (message) => {
-        const newMessage = { userId: user._id, text: message.text, username: user.username };
+        const newMessage = { text: message.text, username: message.username };
         io.emit('newMessage', newMessage);
     });
 });
@@ -77,8 +73,10 @@ db.on('close', () => {
 console.log(`Initial connection status: ${db.readyState}`);
 
 const userSchema = new mongoose.Schema({
-    name: String,
-    nickname: String,
+    username: String,
+    email: String,
+    password: String,
+
 });
 
 const UserModel = mongoose.model('User', userSchema);
@@ -92,14 +90,9 @@ io.on('connection', (socket) => {
 });
 
 app.post('/api/messages', async (req, res) => {
-    const { text, username } = req.body;
+    const { text, nickname } = req.body;
 
-    let user = await UserModel.findOne({ nickname: username });
-    if (!user) {
-        user = await UserModel.create({ name: 'DefaultName', nickname: username });
-    }
-
-    const newMessage = { id: messages.length + 1, text, username };
+    const newMessage = { text, username: nickname };
     messages.push(newMessage);
     io.emit('newMessage', newMessage);
     res.json(newMessage);
@@ -122,6 +115,16 @@ app.post('/api/register', async (req, res) => {
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: 'Error registering user' });
+    }
+});
+
+app.get('/api/users', async (req, res) => {
+    try {
+        const users = await UserModel.find();
+        res.json(users);
+    } catch (error) {
+        console.error('Error fetching users:', error);
+        res.status(500).json({ message: 'Error fetching users' });
     }
 });
 
@@ -158,35 +161,6 @@ app.get('/api/messages/:userId', async (req, res) => {
         res.status(500).json({ message: 'Error fetching chat history' });
     }
 });
-
-app.get('/api/messages/:userId', async (req, res) => {
-    try {
-        const userId = req.params.userId;
-        const messages = await MessageModel.find({ userId }).sort({ createdAt: 'asc' });
-
-        res.status(200).json(messages);
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: 'Error fetching chat history' });
-    }
-});
-
-app.post('/api/users', async (req, res) => {
-    const { username, email, password } = req.body;
-
-    try {
-        const hashedPassword = await bcrypt.hash(password, 10);
-        const newUser = new UserModel({ username, email, password: hashedPassword });
-        await newUser.save();
-
-        res.status(201).json({ message: 'User registered successfully', user: newUser });
-    } catch (error) {
-
-        console.error(error);
-        res.status(500).json({ message: 'Error registering user' });
-    }
-});
-
 
 server.listen(3001, () => {
     console.log('Server is running on port 3001');
