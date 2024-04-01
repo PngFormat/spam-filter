@@ -4,6 +4,7 @@ import io from 'socket.io-client';
 import RegistrationForm from "./RegistrationForm";
 import {Button,Paper, TextField, Theme, Typography} from "@mui/material";
 import styles from '../styles/Home.module.css'
+import LoginForm from "./AuthForm";
 
 
 
@@ -27,30 +28,10 @@ const ChatRoom: React.FC = () => {
     const [newMessage, setNewMessage] = useState<string>('');
     const [currentUser, setCurrentUser] = useState<User | null>(null);
     const [name, setName] = useState<string>('');
-    const socket = io('http://localhost:3001', {
-        transports: ['websocket'],
-        reconnection: true,
-        reconnectionAttempts: 3,
-    });
-
 
     useEffect(() => {
         loginUser();
     }, []);
-
-    // useEffect(() => {
-    //     axios.get('http://localhost:3001/api/messages')
-    //         .then(response => setMessages(response.data))
-    //         .catch(error => console.error('Error fetching initial messages:', error));
-    //
-    //     socket.on('newMessage', (newMessage) => {
-    //         setMessages((prevMessages) => [...prevMessages, newMessage]);
-    //     });
-    //
-    //     return () => {
-    //         socket.disconnect();
-    //     };
-    // }, [socket]);
 
     const loginUser = async () => {
         try {
@@ -61,18 +42,14 @@ const ChatRoom: React.FC = () => {
         }
     };
 
-
     const handleRegister = useCallback((userData: { username: string; email: string; password: string }) => {
-        axios
-            .post('http://localhost:3001/api/register', userData)
+        axios.post('http://localhost:3001/api/register', userData)
             .then((response) => {
                 const newUser = response.data.message;
                 console.log('New user:', newUser);
                 setCurrentUser(newUser);
                 const { name } = newUser || {};
                 setName(name);
-
-
                 console.log(`Welcome, ${name}!`);
             })
             .catch((error) => {
@@ -80,8 +57,17 @@ const ChatRoom: React.FC = () => {
             });
     }, [setCurrentUser, setName]);
 
-
-
+    const handleLoginSuccess = useCallback((authToken: string) => {
+        axios.get('http://localhost:3001/api/user', {
+            headers: {
+                Authorization: `Bearer ${authToken}`
+            }
+        }).then(response => {
+            setCurrentUser(response.data.user);
+        }).catch(error => {
+            console.error('Error fetching user data:', error);
+        });
+    }, [setCurrentUser]);
 
     const handleSendMessage = () => {
         if (!newMessage.trim()) {
@@ -104,17 +90,11 @@ const ChatRoom: React.FC = () => {
         }
     };
 
-
-
-
-
-
     return (
         <Paper className={classes.root} elevation={3}>
             <Typography variant="h5" className={classes.welcomeMessage}>
                 Chat Room
             </Typography>
-
             {!currentUser && (
                 <div>
                     <RegistrationForm

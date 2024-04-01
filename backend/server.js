@@ -7,13 +7,14 @@ import bcrypt from 'bcrypt';
 import cors from 'cors'
 import jwt from "jsonwebtoken";
 import { authenticateToken } from './middleware/authMiddleware.js';
-
-const secretKey = process.env.JWT_SECRET_KEY || 'default-secret-key';
+import { config } from 'dotenv';
+config();
 
 const generateAuthToken = (user) => {
-    const token = jwt.sign({ userId: user._id }, secretKey, { expiresIn: '1h' });
+    const token = jwt.sign({ userId: user._id },  process.env.JWT_SECRET_KEY, { expiresIn: '1h' });
     return token;
 };
+
 
 const app = express();
 const server = http.createServer(app);
@@ -50,6 +51,7 @@ io.on('connection', (socket) => {
 
     socket.on('sendMessage', (message) => {
         const newMessage = { text: message.text, username: message.username };
+        messages.push(newMessage);
         io.emit('newMessage', newMessage);
     });
 });
@@ -118,13 +120,31 @@ app.post('/api/register', async (req, res) => {
     }
 });
 
-app.get('/api/users', async (req, res) => {
+app.get('/api/user', async (req, res) => {
     try {
-        const users = await UserModel.find();
-        res.json(users);
+        const authHeader = req.headers['authorization'];
+        const token = authHeader && authHeader.split(' ')[1];
+
+        if (!token) {
+            return res.status(401).json({ message: 'Unauthorized' });
+        }
+
+        jwt.verify(token, process.env.JWT_SECRET_KEY, async (err, decodedToken) => {
+            if (err) {
+                return res.status(401).json({ message: 'Invalid token' });
+            }
+
+            const userId = decodedToken.userId;
+
+            const user = await UserModel.findById(userId);
+            if (!user) {
+                return res.status(404).json({ message: 'User not found' });
+            }
+            res.json(user);
+        });
     } catch (error) {
-        console.error('Error fetching users:', error);
-        res.status(500).json({ message: 'Error fetching users' });
+        console.error('Error fetching user:', error);
+        res.status(500).json({ message: 'Error fetching user' });
     }
 });
 
@@ -133,12 +153,19 @@ app.get('/api/protected-route', authenticateToken, (req, res) => {
 });
 
 app.post('/api/login', async (req, res) => {
-    const { nickname, password } = req.body;
+    const { username, password } = req.body;
 
     try {
-        const user = await UserModel.findOne({ nickname });
+        const user = await UserModel.findOne({ username });
 
-        if (!user || !(await bcrypt.compare(password, user.password))) {
+        if (!user) {
+            return res.status(401).json({ message: 'Invalid credentials' });
+        }
+
+        const passwordMatch = await bcrypt.compare(password, user.password);
+        console.log('Password comparison result:', passwordMatch);
+
+        if (!passwordMatch) {
             return res.status(401).json({ message: 'Invalid credentials' });
         }
 
@@ -146,22 +173,29 @@ app.post('/api/login', async (req, res) => {
 
         res.status(200).json({ authToken });
     } catch (error) {
-        console.error(error);
+        console.error('Error during login:', error);
         res.status(500).json({ message: 'Error during login' });
     }
 });
 
-app.get('/api/messages/:userId', async (req, res) => {
+
+app.get('/api/user/:username', async (req, res) => {
+    const { username } = req.params;
+
     try {
-        const userId = req.params.userId;
-        const userMessages = messages.filter(message => message.userId === userId);
-        res.status(200).json(userMessages);
+        const user = await UserModel.findOne({ username });
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        res.json({ user });
     } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: 'Error fetching chat history' });
+        console.error('Error fetching user data:', error);
+        res.status(500).json({ message: 'Error fetching user data' });
     }
 });
 
 server.listen(3001, () => {
     console.log('Server is running on port 3001');
 });
+
