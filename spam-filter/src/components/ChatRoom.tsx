@@ -1,7 +1,8 @@
+// ChatRoom.tsx
 import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import io from 'socket.io-client';
-import RegistrationForm from "./RegistrationForm";
+import AuthForm from "./AuthForm";
 import { Button, Paper, TextField, Typography } from "@mui/material";
 import styles from '../styles/Home.module.css';
 
@@ -52,7 +53,7 @@ const ChatRoom: React.FC = () => {
             });
     }, [setCurrentUser]);
 
-    const handleLogin = useCallback((userData: { username: string; password: string }) => {
+    const handleLogin = useCallback((userData: { username: string; password: string }, token:string) => {
         axios
             .post('http://localhost:3001/api/login', userData)
             .then((response) => {
@@ -122,17 +123,7 @@ const ChatRoom: React.FC = () => {
                     </div>
                 </div>
             ) : (
-                <RegistrationForm
-                    onRegister={(userData) => handleRegister({
-                        username: userData.name,
-                        email: userData.nickname,
-                        password: userData.password
-                    })}
-                    onLogin={(userData) => handleLogin({
-                        username: userData.name,
-                        password: userData.password
-                    })}
-                />
+                <AuthForm onLogin={(userData, token) => handleLogin(userData, token as string)} />
             )}
         </Paper>
     );

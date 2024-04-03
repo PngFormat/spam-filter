@@ -22,7 +22,7 @@ const App = () => {
                     <Route path="/" element={<ChatRoom />} />
                     <Route path="/users" element={<UserPage />} />
                     <Route path="/blocked-users" element={<BlockedUsersPage />} />
-                    <Route path="/login" element={<LoginForm />} />
+                    <Route path="/login" element={<LoginForm onLogin={handleLogin} />} />
 
                 </Routes>
                 <Footer />

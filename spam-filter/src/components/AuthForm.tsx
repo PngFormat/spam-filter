@@ -1,9 +1,8 @@
 import React, { useState } from 'react';
 
 interface LoginFormProps {
-    onLogin?: (token: string) => void;
+    onLogin: (userData: { username: string; password: string }, token?: string) => void;
 }
-
 const LoginForm: React.FC<LoginFormProps> = ({ onLogin }) => {
     const [userData, setUserData] = useState({
         username: '',
