@@ -17,6 +17,8 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLogin }) => {
 
     const handleLogin = async () => {
         try {
+            console.log('Sending login request with user data:', userData);
+
             const response = await fetch('http://localhost:3001/api/login', {
                 method: 'POST',
                 headers: {
@@ -25,15 +27,16 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLogin }) => {
                 body: JSON.stringify(userData)
             });
 
-            if (!response.ok) {
-                throw new Error('Authentication failed');
-            }
+            console.log('Response status:', response.status);
 
             const data = await response.json();
-            const authToken = data.authToken;
+            console.log('Response data:', data);
 
+            const authToken = data.authToken;
+            console.log('Received authToken:', authToken);
 
             if (onLogin) {
+                console.log('Calling onLogin handler with authToken:', authToken);
                 onLogin(authToken);
             }
         } catch (error: any) {
@@ -47,7 +50,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLogin }) => {
                 username:
                 <input
                     type="text"
-                    name="nickname"
+                    name="username"
                     value={userData.username}
                     onChange={handleInputChange}
                 />

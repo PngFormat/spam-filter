@@ -1,11 +1,9 @@
-import React, {useState, useEffect, useCallback} from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import io from 'socket.io-client';
 import RegistrationForm from "./RegistrationForm";
-import {Button,Paper, TextField, Theme, Typography} from "@mui/material";
-import styles from '../styles/Home.module.css'
-
-
+import { Button, Paper, TextField, Typography } from "@mui/material";
+import styles from '../styles/Home.module.css';
 
 interface Message {
     id: number;
@@ -19,25 +17,16 @@ interface User {
     nickname: string;
 }
 
-
 const ChatRoom: React.FC = () => {
     const classes = styles;
 
     const [messages, setMessages] = useState<Message[]>([]);
     const [newMessage, setNewMessage] = useState<string>('');
     const [currentUser, setCurrentUser] = useState<User | null>(null);
-    const [name, setName] = useState<string>('');
-    const socket = io('http://localhost:3001', {
-        transports: ['websocket'],
-        reconnection: true,
-        reconnectionAttempts: 3,
-    });
-
 
     useEffect(() => {
         loginUser();
     }, []);
-
 
     const loginUser = async () => {
         try {
@@ -48,7 +37,6 @@ const ChatRoom: React.FC = () => {
         }
     };
 
-
     const handleRegister = useCallback((userData: { username: string; email: string; password: string }) => {
         axios
             .post('http://localhost:3001/api/register', userData)
@@ -57,18 +45,26 @@ const ChatRoom: React.FC = () => {
                 console.log('New user:', newUser);
                 setCurrentUser(newUser);
                 const { name } = newUser || {};
-                setName(name);
-
-
                 console.log(`Welcome, ${name}!`);
             })
             .catch((error) => {
                 console.error('Error creating user:', error);
             });
-    }, [setCurrentUser, setName]);
+    }, [setCurrentUser]);
 
-
-
+    const handleLogin = useCallback((userData: { username: string; password: string }) => {
+        axios
+            .post('http://localhost:3001/api/login', userData)
+            .then((response) => {
+                const loggedInUser = response.data.user;
+                console.log('Logged in user:', loggedInUser);
+                setCurrentUser(loggedInUser);
+                console.log('Current user:', currentUser);
+            })
+            .catch((error) => {
+                console.error('Error logging in:', error);
+            });
+    }, [setCurrentUser, currentUser]);
 
     const handleSendMessage = () => {
         if (!newMessage.trim()) {
@@ -91,33 +87,16 @@ const ChatRoom: React.FC = () => {
         }
     };
 
-
-
-
-
-
     return (
         <Paper className={classes.root} elevation={3}>
             <Typography variant="h5" className={classes.welcomeMessage}>
                 Chat Room
             </Typography>
 
-            {!currentUser && (
-                <div>
-                    <RegistrationForm
-                        onRegister={(userData) => handleRegister({
-                            username: userData.name,
-                            email: userData.nickname,
-                            password: userData.password
-                        })}
-                    />
-                </div>
-            )}
-
-            {currentUser && (
+            {currentUser ? (
                 <div>
                     <Typography variant="body1" paragraph>
-                        Welcome, {currentUser.id} ({currentUser.nickname})!
+                        Welcome, {currentUser.name} ({currentUser.nickname})!
                     </Typography>
 
                     <ul className={classes.messageList}>
@@ -142,6 +121,18 @@ const ChatRoom: React.FC = () => {
                         </Button>
                     </div>
                 </div>
+            ) : (
+                <RegistrationForm
+                    onRegister={(userData) => handleRegister({
+                        username: userData.name,
+                        email: userData.nickname,
+                        password: userData.password
+                    })}
+                    onLogin={(userData) => handleLogin({
+                        username: userData.name,
+                        password: userData.password
+                    })}
+                />
             )}
         </Paper>
     );

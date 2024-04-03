@@ -23,6 +23,7 @@ const App = () => {
                     <Route path="/users" element={<UserPage />} />
                     <Route path="/blocked-users" element={<BlockedUsersPage />} />
                     <Route path="/login" element={<LoginForm />} />
+
                 </Routes>
                 <Footer />
             </div>

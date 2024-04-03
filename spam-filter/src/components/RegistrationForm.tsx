@@ -3,7 +3,8 @@ import React, { useState } from 'react';
 import styles from '../styles/Registration.module.css';
 
 interface RegistrationFormProps {
-    onRegister: (userData: { name: string; nickname: string; password: string }) => void;
+    onRegister?: (userData: { name: string; nickname: string; password: string; }) => void;
+    onLogin?: (userData: { name: string; password: string; }) => void;
 }
 
 const RegistrationForm: React.FC<RegistrationFormProps> = ({ onRegister }) => {
@@ -13,7 +14,9 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onRegister }) => {
 
     const handleRegister = () => {
         if (name.trim() && nickname.trim()) {
-            onRegister({ name, nickname, password });
+            if (onRegister) {
+                onRegister({name, nickname, password});
+            }
         } else {
             alert('Please enter a valid name and nickname.');
         }
