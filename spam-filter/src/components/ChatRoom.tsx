@@ -1,9 +1,9 @@
-// ChatRoom.tsx
 import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import io from 'socket.io-client';
-import AuthForm from "./AuthForm";
-import { Button, Paper, TextField, Typography } from "@mui/material";
+import RegistrationForm from './RegistrationForm';
+import LoginForm from "./AuthForm";
+import { Button, Paper, TextField, Typography } from '@mui/material';
 import styles from '../styles/Home.module.css';
 
 interface Message {
@@ -24,6 +24,12 @@ const ChatRoom: React.FC = () => {
     const [messages, setMessages] = useState<Message[]>([]);
     const [newMessage, setNewMessage] = useState<string>('');
     const [currentUser, setCurrentUser] = useState<User | null>(null);
+    const [name, setName] = useState<string>('');
+    const socket = io('http://localhost:3001', {
+        transports: ['websocket'],
+        reconnection: true,
+        reconnectionAttempts: 3,
+    });
 
     useEffect(() => {
         loginUser();
@@ -38,34 +44,41 @@ const ChatRoom: React.FC = () => {
         }
     };
 
-    const handleRegister = useCallback((userData: { username: string; email: string; password: string }) => {
-        axios
-            .post('http://localhost:3001/api/register', userData)
-            .then((response) => {
-                const newUser = response.data.message;
-                console.log('New user:', newUser);
-                setCurrentUser(newUser);
-                const { name } = newUser || {};
-                console.log(`Welcome, ${name}!`);
-            })
-            .catch((error) => {
-                console.error('Error creating user:', error);
-            });
-    }, [setCurrentUser]);
+    const handleRegister = useCallback(
+        (userData: { username: string; email: string; password: string }) => {
+            axios
+                .post('http://localhost:3001/api/register', userData)
+                .then((response) => {
+                    const newUser = response.data.message;
+                    console.log('New user:', newUser);
+                    setCurrentUser(newUser);
+                    const { name } = newUser || {};
+                    setName(name);
+                    console.log(`Welcome, ${name}!`);
+                })
+                .catch((error) => {
+                    console.error('Error creating user:', error);
+                });
+        },
+        [setCurrentUser, setName]
+    );
 
-    const handleLogin = useCallback((userData: { username: string; password: string }, token:string) => {
-        axios
-            .post('http://localhost:3001/api/login', userData)
-            .then((response) => {
-                const loggedInUser = response.data.user;
-                console.log('Logged in user:', loggedInUser);
-                setCurrentUser(loggedInUser);
-                console.log('Current user:', currentUser);
-            })
-            .catch((error) => {
-                console.error('Error logging in:', error);
-            });
-    }, [setCurrentUser, currentUser]);
+    const handleLogin = useCallback(
+        (userData: { username: string; email: string; password: string }) => {
+            axios
+                .post('http://localhost:3001/api/login', userData)
+                .then((response) => {
+                    const loggedInUser = response.data.user;
+                    console.log('Logged in user:', loggedInUser);
+                    setCurrentUser(loggedInUser);
+                    console.log('Current user:', currentUser);
+                })
+                .catch((error) => {
+                    console.error('Error logging in:', error);
+                });
+        },
+        [setCurrentUser, currentUser]
+    );
 
     const handleSendMessage = () => {
         if (!newMessage.trim()) {
@@ -74,12 +87,13 @@ const ChatRoom: React.FC = () => {
         }
 
         if (currentUser) {
-            axios.post('http://localhost:3001/api/messages', { text: newMessage, username: currentUser.nickname })
-                .then(response => {
+            axios
+                .post('http://localhost:3001/api/messages', { text: newMessage, username: currentUser.nickname })
+                .then((response) => {
                     setMessages((prevMessages) => [...prevMessages, response.data]);
                     setNewMessage('');
                 })
-                .catch(error => {
+                .catch((error) => {
                     console.error('Error sending message:', error);
                     alert('Failed to send message. Please try again later.');
                 });
@@ -123,7 +137,10 @@ const ChatRoom: React.FC = () => {
                     </div>
                 </div>
             ) : (
-                <AuthForm onLogin={(userData, token) => handleLogin(userData, token as string)} />
+                <div>
+                    <RegistrationForm onRegister={(userData) => handleRegister({ username: userData.name, email: userData.nickname, password: userData.password })} />
+                    <LoginForm onLogin={(userData) => handleLogin({ username: userData.username, email: userData.username, password: userData.password })} /> // Render LoginForm
+                </div>
             )}
         </Paper>
     );

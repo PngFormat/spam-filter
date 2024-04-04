@@ -1,17 +1,17 @@
-import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import React, { useState } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Header from '../src/components/Header';
 import Footer from '../src/components/Footer';
 import ChatRoom from './components/ChatRoom';
 import UserPage from './pages/UserPage';
 import BlockedUsersPage from "../src/pages/BlockedUsersPage";
-
 import LoginForm from "./components/AuthForm";
 
 const App = () => {
-    const handleLogin = (userData: { username: string; password: string }) => {
+    const [currentUser, setCurrentUser] = useState<{ username: string; password: string } | null>(null);
 
-        console.log(userData);
+    const handleLogin = (userData: { username: string; password: string }) => {
+        setCurrentUser(userData);
     };
 
     return (
@@ -23,7 +23,7 @@ const App = () => {
                     <Route path="/users" element={<UserPage />} />
                     <Route path="/blocked-users" element={<BlockedUsersPage />} />
                     <Route path="/login" element={<LoginForm onLogin={handleLogin} />} />
-
+                    {!currentUser && <Navigate to="/login" />}
                 </Routes>
                 <Footer />
             </div>
