@@ -2,17 +2,17 @@ import express from 'express';
 import http from 'http';
 import bodyParser from 'body-parser';
 import mongoose from 'mongoose';
-import { Server } from 'socket.io';
+import {Server} from 'socket.io';
 import bcrypt from 'bcrypt';
 import cors from 'cors'
 import jwt from "jsonwebtoken";
-import { authenticateToken } from './middleware/authMiddleware.js';
-import { config } from 'dotenv';
-config();
+import {authenticateToken} from './middleware/authMiddleware.js';
+import {config} from 'dotenv';
 
+config();
+const secretKey = 'key'
 const generateAuthToken = (user) => {
-    const token = jwt.sign({ userId: user._id },  process.env.JWT_SECRET_KEY, { expiresIn: '1h' });
-    return token;
+    return jwt.sign({userId: user._id}, secretKey, {expiresIn: '1h'});
 };
 
 
@@ -120,6 +120,16 @@ app.post('/api/register', async (req, res) => {
     }
 });
 
+app.get('/api/users', async (req, res) => {
+    try {
+        const users = await UserModel.find();
+        res.json(users);
+    } catch (error) {
+        console.error('Error fetching users:', error);
+        res.status(500).json({ error: 'Failed to fetch users' });
+    }
+});
+
 app.get('/api/user', async (req, res) => {
     try {
         const authHeader = req.headers['authorization'];
@@ -129,7 +139,7 @@ app.get('/api/user', async (req, res) => {
             return res.status(401).json({ message: 'Unauthorized' });
         }
 
-        jwt.verify(token, process.env.JWT_SECRET_KEY, async (err, decodedToken) => {
+        jwt.verify(token, secretKey, async (err, decodedToken) => {
             if (err) {
                 return res.status(401).json({ message: 'Invalid token' });
             }
@@ -157,15 +167,9 @@ app.post('/api/login', async (req, res) => {
 
     try {
         const user = await UserModel.findOne({ username });
-
-        if (!user) {
-            return res.status(401).json({ message: 'Invalid credentials' });
-        }
-
         const passwordMatch = await bcrypt.compare(password, user.password);
         console.log('Password comparison result:', passwordMatch);
-
-        if (!passwordMatch) {
+        if (!user || !(await bcrypt.compare(password, user.password))) {
             return res.status(401).json({ message: 'Invalid credentials' });
         }
 
@@ -173,7 +177,7 @@ app.post('/api/login', async (req, res) => {
 
         res.status(200).json({ authToken });
     } catch (error) {
-        console.error('Error during login:', error);
+        console.error(error);
         res.status(500).json({ message: 'Error during login' });
     }
 });

@@ -28,9 +28,23 @@ const ChatRoom: React.FC = () => {
     const [newMessage, setNewMessage] = useState<string>('');
     const [currentUser, setCurrentUser] = useState<User | null>(null);
     const [name, setName] = useState<string>('');
+    const [showRegistrationForm, setShowRegistrationForm] = useState<boolean>(false);
+    const [showLoginForm, setShowLoginForm] = useState<boolean>(false);
 
     useEffect(() => {
         loginUser();
+        const authToken = localStorage.getItem('authToken');
+        if (authToken) {
+            axios.get('http://localhost:3001/api/user', {
+                headers: {
+                    Authorization: `Bearer ${authToken}`
+                }
+            }).then(response => {
+                setCurrentUser(response.data.user);
+            }).catch(error => {
+                console.error('Error fetching user data:', error);
+            });
+        }
     }, []);
 
     const loginUser = async () => {
@@ -43,6 +57,7 @@ const ChatRoom: React.FC = () => {
     };
 
     const handleRegister = useCallback((userData: { username: string; email: string; password: string }) => {
+        setShowRegistrationForm(false)
         axios.post('http://localhost:3001/api/register', userData)
             .then((response) => {
                 const newUser = response.data.message;
@@ -58,16 +73,33 @@ const ChatRoom: React.FC = () => {
     }, [setCurrentUser, setName]);
 
     const handleLoginSuccess = useCallback((authToken: string) => {
+        setShowLoginForm(false);
+        console.log(authToken)
+        localStorage.setItem('authToken', authToken);
         axios.get('http://localhost:3001/api/user', {
             headers: {
                 Authorization: `Bearer ${authToken}`
+
             }
         }).then(response => {
-            setCurrentUser(response.data.user);
+            const newUser = response.data.username;
+            setCurrentUser(newUser);
+            const { name } = newUser || {};
+            setName(name);
         }).catch(error => {
             console.error('Error fetching user data:', error);
         });
     }, [setCurrentUser]);
+
+    const handleShowRegistrationForm = () => {
+        setShowRegistrationForm(true);
+        setShowLoginForm(false);
+    };
+
+    const handleShowLoginForm = () => {
+        setShowLoginForm(true);
+        setShowRegistrationForm(false);
+    };
 
     const handleSendMessage = () => {
         if (!newMessage.trim()) {
@@ -95,19 +127,27 @@ const ChatRoom: React.FC = () => {
             <Typography variant="h5" className={classes.welcomeMessage}>
                 Chat Room
             </Typography>
-            {!currentUser && (
+            {!currentUser && !showRegistrationForm && (
                 <div>
-                    <RegistrationForm
-                        onRegister={(userData) => handleRegister({
-                            username: userData.name,
-                            email: userData.nickname,
-                            password: userData.password
-                        })}
-                    />
+                    <Button onClick={handleShowRegistrationForm}>Sign up</Button>
+                    <Button onClick={handleShowLoginForm}>Sign in</Button>
                 </div>
             )}
 
-            {currentUser && (
+            {showRegistrationForm && (
+                <RegistrationForm
+                    onRegister={(userData) => handleRegister({
+                        username: userData.name,
+                        email: userData.nickname,
+                        password: userData.password
+                    })}
+                />
+            )}
+            {showLoginForm && (
+                <LoginForm onLogin={handleLoginSuccess} />
+            )}
+
+            {currentUser && localStorage.getItem('authToken') && (
                 <div>
                     <Typography variant="body1" paragraph>
                         Welcome, {currentUser.id} ({currentUser.nickname})!

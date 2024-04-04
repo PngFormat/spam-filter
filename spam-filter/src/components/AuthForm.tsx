@@ -20,7 +20,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLogin }) => {
         let authToken;
 
         try {
-            console.log('User Data:', userData);
+            // console.log('User Data:', userData);
             const response = await fetch('http://localhost:3001/api/login', {
                 method: 'POST',
                 headers: {
@@ -34,7 +34,6 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLogin }) => {
             }
 
             const data = await response.json();
-            console.log('Server Response:', data);
             authToken = data.authToken;
 
             if (onLogin) {
