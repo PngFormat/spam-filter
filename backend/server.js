@@ -156,18 +156,18 @@ app.post('/api/login', async (req, res) => {
     const { username, password } = req.body;
 
     try {
+
         const user = await UserModel.findOne({ username });
-        const passwordMatch = await bcrypt.compare(password, user.password);
-        console.log('Password comparison result:', passwordMatch);
+
         if (!user || !(await bcrypt.compare(password, user.password))) {
             return res.status(401).json({ message: 'Invalid credentials' });
         }
 
-        const authToken = generateAuthToken(user);
+        const authToken = jwt.sign({ userId: user._id }, 'secretKey', { expiresIn: '1h' });
 
-        res.status(200).json({ authToken });
+        res.json({ authToken });
     } catch (error) {
-        console.error(error);
+        console.error('Error during login:', error);
         res.status(500).json({ message: 'Error during login' });
     }
 });
@@ -177,15 +177,17 @@ app.get('/api/user/:username', async (req, res) => {
     const { username } = req.params;
 
     try {
+
         const user = await UserModel.findOne({ username });
+
         if (!user) {
             return res.status(404).json({ message: 'User not found' });
         }
 
-        res.json({ user });
+        res.json(user);
     } catch (error) {
-        console.error('Error fetching user data:', error);
-        res.status(500).json({ message: 'Error fetching user data' });
+        console.error('Error fetching user:', error);
+        res.status(500).json({ message: 'Error fetching user' });
     }
 });
 

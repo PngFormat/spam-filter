@@ -23,7 +23,8 @@ interface User {
 
 const ChatRoom: React.FC = () => {
     const classes = styles;
-
+    localStorage.removeItem('currentUser')
+    localStorage.removeItem('authToken')
     const [currentUser, setCurrentUser] = useState<User | null>(() => {
         const storedUser = localStorage.getItem('currentUser');
         return storedUser ? JSON.parse(storedUser) : null;
@@ -36,7 +37,7 @@ const ChatRoom: React.FC = () => {
         loginUser();
         const authToken = localStorage.getItem('authToken');
         if (authToken) {
-            axios.get('http://localhost:3001/api/user', {
+            axios.get('http://localhost:3001/api/users', {
                 headers: {
                     Authorization: `Bearer ${authToken}`
                 }
@@ -75,17 +76,17 @@ const ChatRoom: React.FC = () => {
             });
     }, [setCurrentUser, setName]);
 
-    const handleLoginSuccess = useCallback((authToken: string) => {
+    const handleLoginSuccess = useCallback((authToken: string, username: string) => {
         setShowLoginForm(false);
-        console.log(authToken)
         localStorage.setItem('authToken', authToken);
-        axios.get('http://localhost:3001/api/user', {
+        axios.get(`http://localhost:3001/api/user/${username}`, {
             headers: {
                 Authorization: `Bearer ${authToken}`
-
             }
+
         }).then(response => {
             const newUser = response.data.username;
+            console.log(username)
             setCurrentUser(newUser);
             localStorage.setItem('currentUser', JSON.stringify(newUser));
             const { name } = newUser || {};
@@ -93,7 +94,8 @@ const ChatRoom: React.FC = () => {
         }).catch(error => {
             console.error('Error fetching user data:', error);
         });
-    }, [setCurrentUser]);
+    }, [setCurrentUser, setName]);
+
 
     const handleShowRegistrationForm = () => {
         setShowRegistrationForm(true);

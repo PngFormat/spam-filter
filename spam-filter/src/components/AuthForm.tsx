@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 
 interface LoginFormProps {
-    onLogin?: (token: string) => void;
+    onLogin?: (token: string,username:string) => void;
 }
 
 const LoginForm: React.FC<LoginFormProps> = ({ onLogin }) => {
@@ -11,16 +11,23 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLogin }) => {
     });
     const [error, setError] = useState<string>('');
 
+    // Новое состояние для имени пользователя
+    const [username, setUsername] = useState<string>('');
+
     const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = event.target;
         setUserData({ ...userData, [name]: value });
+
+        // Обновляем состояние имени пользователя при изменении
+        if (name === 'username') {
+            setUsername(value);
+        }
     };
 
     const handleLogin = async () => {
         let authToken;
 
         try {
-            // console.log('User Data:', userData);
             const response = await fetch('http://localhost:3001/api/login', {
                 method: 'POST',
                 headers: {
@@ -36,8 +43,9 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLogin }) => {
             const data = await response.json();
             authToken = data.authToken;
 
+            // Вызываем onLogin с токеном и именем пользователя
             if (onLogin) {
-                onLogin(authToken);
+                onLogin(authToken, username);
             }
         } catch (error) {
             console.error('Authentication error:', (error as Error).message);
