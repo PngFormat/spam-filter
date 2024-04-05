@@ -121,6 +121,7 @@ app.post('/api/register', async (req, res) => {
 });
 
 app.get('/api/users', async (req, res) => {
+
     try {
         const users = await UserModel.find();
         res.json(users);
@@ -130,28 +131,17 @@ app.get('/api/users', async (req, res) => {
     }
 });
 
-app.get('/api/user', async (req, res) => {
+app.get('/api/user/:username', async (req, res) => {
+    const { username } = req.body;
+    console.log(username)
     try {
-        const authHeader = req.headers['authorization'];
-        const token = authHeader && authHeader.split(' ')[1];
-
-        if (!token) {
-            return res.status(401).json({ message: 'Unauthorized' });
+        const nickname = req.params.nickname;
+        console.log(nickname)
+        const user = await UserModel.findOne({ nickname: username });
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
         }
-
-        jwt.verify(token, secretKey, async (err, decodedToken) => {
-            if (err) {
-                return res.status(401).json({ message: 'Invalid token' });
-            }
-
-            const userId = decodedToken.userId;
-
-            const user = await UserModel.findById(userId);
-            if (!user) {
-                return res.status(404).json({ message: 'User not found' });
-            }
-            res.json(user);
-        });
+        res.json(user);
     } catch (error) {
         console.error('Error fetching user:', error);
         res.status(500).json({ message: 'Error fetching user' });

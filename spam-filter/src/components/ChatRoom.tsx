@@ -5,7 +5,7 @@ import RegistrationForm from "./RegistrationForm";
 import {Button,Paper, TextField, Theme, Typography} from "@mui/material";
 import styles from '../styles/Home.module.css'
 import LoginForm from "./AuthForm";
-
+import Chat from "./Chat";
 
 
 interface Message {
@@ -24,9 +24,10 @@ interface User {
 const ChatRoom: React.FC = () => {
     const classes = styles;
 
-    const [messages, setMessages] = useState<Message[]>([]);
-    const [newMessage, setNewMessage] = useState<string>('');
-    const [currentUser, setCurrentUser] = useState<User | null>(null);
+    const [currentUser, setCurrentUser] = useState<User | null>(() => {
+        const storedUser = localStorage.getItem('currentUser');
+        return storedUser ? JSON.parse(storedUser) : null;
+    });
     const [name, setName] = useState<string>('');
     const [showRegistrationForm, setShowRegistrationForm] = useState<boolean>(false);
     const [showLoginForm, setShowLoginForm] = useState<boolean>(false);
@@ -63,6 +64,8 @@ const ChatRoom: React.FC = () => {
                 const newUser = response.data.message;
                 console.log('New user:', newUser);
                 setCurrentUser(newUser);
+                localStorage.setItem('currentUser', JSON.stringify(newUser));
+                localStorage.setItem('authToken', response.data.token);
                 const { name } = newUser || {};
                 setName(name);
                 console.log(`Welcome, ${name}!`);
@@ -84,6 +87,7 @@ const ChatRoom: React.FC = () => {
         }).then(response => {
             const newUser = response.data.username;
             setCurrentUser(newUser);
+            localStorage.setItem('currentUser', JSON.stringify(newUser));
             const { name } = newUser || {};
             setName(name);
         }).catch(error => {
@@ -101,26 +105,7 @@ const ChatRoom: React.FC = () => {
         setShowRegistrationForm(false);
     };
 
-    const handleSendMessage = () => {
-        if (!newMessage.trim()) {
-            console.warn('Message text is empty');
-            return;
-        }
 
-        if (currentUser) {
-            axios.post('http://localhost:3001/api/messages', { text: newMessage, username: currentUser.nickname })
-                .then(response => {
-                    setMessages((prevMessages) => [...prevMessages, response.data]);
-                    setNewMessage('');
-                })
-                .catch(error => {
-                    console.error('Error sending message:', error);
-                    alert('Failed to send message. Please try again later.');
-                });
-        } else {
-            alert('You need to log in first.');
-        }
-    };
 
     return (
         <Paper className={classes.root} elevation={3}>
@@ -149,31 +134,7 @@ const ChatRoom: React.FC = () => {
 
             {currentUser && localStorage.getItem('authToken') && (
                 <div>
-                    <Typography variant="body1" paragraph>
-                        Welcome, {currentUser.id} ({currentUser.nickname})!
-                    </Typography>
-
-                    <ul className={classes.messageList}>
-                        {messages.map((message) => (
-                            <li key={message.id} className={classes.messageItem}>
-                                <strong>{message.username}: </strong>
-                                {message.text}
-                            </li>
-                        ))}
-                    </ul>
-
-                    <div className={classes.inputContainer}>
-                        <TextField
-                            className={classes.input}
-                            type="text"
-                            placeholder="Type your message..."
-                            value={newMessage}
-                            onChange={(e) => setNewMessage(e.target.value)}
-                        />
-                        <Button variant="contained" color="primary" onClick={handleSendMessage}>
-                            Send
-                        </Button>
-                    </div>
+                    <Chat currentUser={currentUser} />
                 </div>
             )}
         </Paper>
