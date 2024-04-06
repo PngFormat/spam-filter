@@ -1,6 +1,5 @@
 import React, {useState, useEffect, useCallback} from 'react';
 import axios from 'axios';
-import io from 'socket.io-client';
 import RegistrationForm from "./RegistrationForm";
 import {Button,Paper, TextField, Theme, Typography} from "@mui/material";
 import styles from '../styles/Home.module.css'
@@ -69,7 +68,6 @@ const ChatRoom: React.FC = () => {
                 localStorage.setItem('authToken', response.data.token);
                 const { name } = newUser || {};
                 setName(name);
-                console.log(`Welcome, ${name}!`);
             })
             .catch((error) => {
                 console.error('Error creating user:', error);
@@ -83,19 +81,17 @@ const ChatRoom: React.FC = () => {
             headers: {
                 Authorization: `Bearer ${authToken}`
             }
-
         }).then(response => {
-            const newUser = response.data.username;
-            console.log(username)
+            const newUser: User = response.data.username;
             setCurrentUser(newUser);
+            console.log('New user:', newUser);
             localStorage.setItem('currentUser', JSON.stringify(newUser));
-            const { name } = newUser || {};
-            setName(name);
+            const { name } = newUser;
+            setName(username);
         }).catch(error => {
             console.error('Error fetching user data:', error);
         });
     }, [setCurrentUser, setName]);
-
 
     const handleShowRegistrationForm = () => {
         setShowRegistrationForm(true);
@@ -105,6 +101,13 @@ const ChatRoom: React.FC = () => {
     const handleShowLoginForm = () => {
         setShowLoginForm(true);
         setShowRegistrationForm(false);
+    };
+
+    const handleLogout = () => {
+        localStorage.removeItem('currentUser');
+        localStorage.removeItem('authToken');
+        setCurrentUser(null);
+        setName('');
     };
 
 
@@ -134,9 +137,10 @@ const ChatRoom: React.FC = () => {
                 <LoginForm onLogin={handleLoginSuccess} />
             )}
 
-            {currentUser && localStorage.getItem('authToken') && (
+            {currentUser && (
                 <div>
-                    <Chat currentUser={currentUser} />
+                    <Chat currentUser={currentUser} username={name} />
+                    <Button onClick={handleLogout}>Log out</Button>
                 </div>
             )}
         </Paper>

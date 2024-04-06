@@ -17,9 +17,10 @@ interface User {
 
 interface ChatProps {
     currentUser: User;
+    username: string;
 }
 
-const Chat: React.FC<ChatProps> = ({ currentUser }) => {
+const Chat: React.FC<ChatProps> = ({ currentUser,username }) => {
     const classes = styles;
     const [messages, setMessages] = useState<Message[]>([]);
     const [newMessage, setNewMessage] = useState<string>('');
@@ -27,7 +28,7 @@ const Chat: React.FC<ChatProps> = ({ currentUser }) => {
     useEffect(() => {
         const fetchCurrentUser = async () => {
             try {
-                const response = await axios.get(`/api/user/${currentUser.nickname}`, {
+                const response = await axios.get(`/api/user/${currentUser}`, {
 
                     headers: {
                         Authorization: `Bearer ${localStorage.getItem('authToken')}`
@@ -66,13 +67,13 @@ const Chat: React.FC<ChatProps> = ({ currentUser }) => {
     return (
         <div>
             <Typography variant="body1" paragraph>
-                Welcome, {currentUser.name} ({currentUser.id})!
+                Welcome, {username} ({currentUser.id})!
             </Typography>
 
             <ul className={classes.messageList}>
                 {messages.map(message => (
                     <li key={message.id} className={classes.messageItem}>
-                        <strong>{message.username}: </strong>
+                        <strong>{username}: </strong>
                         {message.text}
                     </li>
                 ))}

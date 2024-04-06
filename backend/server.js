@@ -132,12 +132,10 @@ app.get('/api/users', async (req, res) => {
 });
 
 app.get('/api/user/:username', async (req, res) => {
-    const { username } = req.body;
-    console.log(username)
+    const { username } = req.params;
+    console.log(username);
     try {
-        const nickname = req.params.nickname;
-        console.log(nickname)
-        const user = await UserModel.findOne({ nickname: username });
+        const user = await UserModel.findOne({ username });
         if (!user) {
             return res.status(404).json({ message: 'User not found' });
         }
