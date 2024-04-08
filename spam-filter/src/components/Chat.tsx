@@ -52,7 +52,7 @@ const Chat: React.FC<ChatProps> = ({ currentUser, username }) => {
         }
 
         if (currentUser) {
-            axios.post('http://localhost:3001/api/messages', { text: newMessage, username: currentUser.nickname })
+            axios.post('http://localhost:3001/api/messages', { text: newMessage, username })
                 .then(response => {
                     const newMessageObj: Message = response.data;
                     setMessages(prevMessages => [...prevMessages, newMessageObj]);
@@ -76,7 +76,7 @@ const Chat: React.FC<ChatProps> = ({ currentUser, username }) => {
             <ul className={classes.messageList}>
                 {messages.map(message => (
                     <li key={message.id} className={classes.messageItem}>
-                        <strong>{username}: </strong>
+                        <strong>{message.username}: </strong>
                         {message.text}
                     </li>
                 ))}

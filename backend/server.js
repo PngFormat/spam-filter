@@ -99,19 +99,20 @@ io.on('connection', (socket) => {
 
 app.post('/api/messages', async (req, res) => {
     const { text, username } = req.body;
-
+    console.log('Received message:', req.body);
     try {
         const newMessage = new MessageModel({ text, username });
         await newMessage.save();
-
+        console.log('Message saved successfully:', newMessage);
         io.emit('newMessage', newMessage);
-
         res.status(201).json(newMessage);
     } catch (error) {
         console.error('Error saving message:', error);
         res.status(500).json({ message: 'Error saving message' });
     }
 });
+
+
 
 app.get('/api/messages', async (req, res) => {
     try {
