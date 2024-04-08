@@ -1,11 +1,10 @@
-import React, {useState, useEffect, useCallback} from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import RegistrationForm from "./RegistrationForm";
-import {Button,Paper, TextField, Theme, Typography} from "@mui/material";
+import { Button, Paper, TextField, Typography } from "@mui/material";
 import styles from '../styles/Home.module.css'
 import LoginForm from "./AuthForm";
 import Chat from "./Chat";
-
 
 interface Message {
     id: number;
@@ -19,54 +18,43 @@ interface User {
     nickname: string;
 }
 
-
 const ChatRoom: React.FC = () => {
     const classes = styles;
-    localStorage.removeItem('currentUser')
-    localStorage.removeItem('authToken')
+
     const [currentUser, setCurrentUser] = useState<User | null>(() => {
         const storedUser = localStorage.getItem('currentUser');
         return storedUser ? JSON.parse(storedUser) : null;
     });
+
     const [name, setName] = useState<string>('');
+
     const [showRegistrationForm, setShowRegistrationForm] = useState<boolean>(false);
     const [showLoginForm, setShowLoginForm] = useState<boolean>(false);
 
     useEffect(() => {
-        loginUser();
         const authToken = localStorage.getItem('authToken');
-        if (authToken) {
-            axios.get('http://localhost:3001/api/users', {
+        if (authToken && !currentUser) {
+            axios.get('http://localhost:3001/api/user', {
                 headers: {
                     Authorization: `Bearer ${authToken}`
                 }
             }).then(response => {
-                setCurrentUser(response.data.user);
+                setCurrentUser(response.data);
+                setName(response.data.name);
             }).catch(error => {
                 console.error('Error fetching user data:', error);
             });
         }
-    }, []);
-
-    const loginUser = async () => {
-        try {
-            const users = await fetch('/api/users').then((response) => response.json());
-            console.log('List of users:', users);
-        } catch (error) {
-            console.error('Error fetching users:', error);
-        }
-    };
+    }, [currentUser]);
 
     const handleRegister = useCallback((userData: { username: string; email: string; password: string }) => {
         setShowRegistrationForm(false)
         axios.post('http://localhost:3001/api/register', userData)
             .then((response) => {
-                const newUser = response.data.message;
-                console.log('New user:', newUser);
+                const newUser = response.data.user;
                 setCurrentUser(newUser);
                 localStorage.setItem('currentUser', JSON.stringify(newUser));
                 localStorage.setItem('authToken', response.data.token);
-                const { name } = newUser || {};
                 setName(name);
             })
             .catch((error) => {
@@ -82,12 +70,11 @@ const ChatRoom: React.FC = () => {
                 Authorization: `Bearer ${authToken}`
             }
         }).then(response => {
-            const newUser: User = response.data.username;
+            const newUser: User = response.data;
             setCurrentUser(newUser);
-            console.log('New user:', newUser);
             localStorage.setItem('currentUser', JSON.stringify(newUser));
-            const { name } = newUser;
             setName(username);
+            localStorage.setItem('username', username);
         }).catch(error => {
             console.error('Error fetching user data:', error);
         });
@@ -106,11 +93,10 @@ const ChatRoom: React.FC = () => {
     const handleLogout = () => {
         localStorage.removeItem('currentUser');
         localStorage.removeItem('authToken');
+        localStorage.removeItem('username');
         setCurrentUser(null);
         setName('');
     };
-
-
 
     return (
         <Paper className={classes.root} elevation={3}>

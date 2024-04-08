@@ -11,14 +11,11 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLogin }) => {
     });
     const [error, setError] = useState<string>('');
 
-    // Новое состояние для имени пользователя
     const [username, setUsername] = useState<string>('');
 
     const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = event.target;
         setUserData({ ...userData, [name]: value });
-
-        // Обновляем состояние имени пользователя при изменении
         if (name === 'username') {
             setUsername(value);
         }
@@ -42,8 +39,8 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLogin }) => {
 
             const data = await response.json();
             authToken = data.authToken;
+            localStorage.setItem('username', username);
 
-            // Вызываем onLogin с токеном и именем пользователя
             if (onLogin) {
                 onLogin(authToken, username);
             }

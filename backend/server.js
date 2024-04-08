@@ -81,6 +81,12 @@ const userSchema = new mongoose.Schema({
 
 });
 
+const messageSchema = new mongoose.Schema({
+    text: String,
+    username: String,
+});
+
+const MessageModel = mongoose.model('Message', messageSchema);
 const UserModel = mongoose.model('User', userSchema);
 
 io.on('connection', (socket) => {
@@ -92,12 +98,29 @@ io.on('connection', (socket) => {
 });
 
 app.post('/api/messages', async (req, res) => {
-    const { text, nickname } = req.body;
+    const { text, username } = req.body;
 
-    const newMessage = { text, username: nickname };
-    messages.push(newMessage);
-    io.emit('newMessage', newMessage);
-    res.json(newMessage);
+    try {
+        const newMessage = new MessageModel({ text, username });
+        await newMessage.save();
+
+        io.emit('newMessage', newMessage);
+
+        res.status(201).json(newMessage);
+    } catch (error) {
+        console.error('Error saving message:', error);
+        res.status(500).json({ message: 'Error saving message' });
+    }
+});
+
+app.get('/api/messages', async (req, res) => {
+    try {
+        const messages = await MessageModel.find();
+        res.json(messages);
+    } catch (error) {
+        console.error('Error fetching messages:', error);
+        res.status(500).json({ message: 'Error fetching messages' });
+    }
 });
 
 app.post('/api/register', async (req, res) => {

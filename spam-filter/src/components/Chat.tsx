@@ -20,28 +20,30 @@ interface ChatProps {
     username: string;
 }
 
-const Chat: React.FC<ChatProps> = ({ currentUser,username }) => {
+const Chat: React.FC<ChatProps> = ({ currentUser, username }) => {
     const classes = styles;
     const [messages, setMessages] = useState<Message[]>([]);
     const [newMessage, setNewMessage] = useState<string>('');
 
     useEffect(() => {
-        const fetchCurrentUser = async () => {
+        const fetchMessages = async () => {
             try {
-                const response = await axios.get(`/api/user/${currentUser}`, {
-
-                    headers: {
-                        Authorization: `Bearer ${localStorage.getItem('authToken')}`
-                    }
-                });
-                console.log(response.data);
+                const response = await axios.get('http://localhost:3001/api/messages');
+                const storedMessages = response.data;
+                setMessages(storedMessages);
             } catch (error) {
-                console.error('Error fetching current user:', error);
+                console.error('Error fetching messages:', error);
             }
         };
 
-        fetchCurrentUser();
+        fetchMessages();
     }, []);
+
+    useEffect(() => {
+        return () => {
+            localStorage.setItem('chatMessages', JSON.stringify(messages));
+        };
+    }, [messages]);
 
     const handleSendMessage = () => {
         if (!newMessage.trim()) {
@@ -52,7 +54,8 @@ const Chat: React.FC<ChatProps> = ({ currentUser,username }) => {
         if (currentUser) {
             axios.post('http://localhost:3001/api/messages', { text: newMessage, username: currentUser.nickname })
                 .then(response => {
-                    setMessages(prevMessages => [...prevMessages, response.data]);
+                    const newMessageObj: Message = response.data;
+                    setMessages(prevMessages => [...prevMessages, newMessageObj]);
                     setNewMessage('');
                 })
                 .catch(error => {
