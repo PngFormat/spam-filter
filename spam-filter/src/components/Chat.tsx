@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Button, TextField, Typography } from '@mui/material';
 import styles from '../styles/Home.module.css';
 import axios from 'axios';
+import { v4 as uuidv4 } from 'uuid';
 
 interface Message {
     id: number;
@@ -52,7 +53,9 @@ const Chat: React.FC<ChatProps> = ({ currentUser, username }) => {
         }
 
         if (currentUser) {
-            axios.post('http://localhost:3001/api/messages', { text: newMessage, username })
+            const messageId = uuidv4();
+            console.log(messageId + 'id')
+            axios.post('http://localhost:3001/api/messages', { id: messageId, text: newMessage, username })
                 .then(response => {
                     const newMessageObj: Message = response.data;
                     setMessages(prevMessages => [...prevMessages, newMessageObj]);
@@ -65,7 +68,22 @@ const Chat: React.FC<ChatProps> = ({ currentUser, username }) => {
         } else {
             alert('You need to log in first.');
         }
+
     };
+
+    const handleDeleteMessage = (messageId: number) => {
+        console.log(messageId)
+        axios.delete(`http://localhost:3001/api/messages/${messageId.toString()}`)
+            .then(response => {
+                setMessages(prevMessages => prevMessages.filter(message => message.id !== messageId));
+            })
+            .catch(error => {
+                console.error('Error deleting message:', error);
+                alert('Failed to delete message. Please try again later.');
+            });
+    };
+
+
 
     return (
         <div>
@@ -78,6 +96,11 @@ const Chat: React.FC<ChatProps> = ({ currentUser, username }) => {
                     <li key={message.id} className={classes.messageItem}>
                         <strong>{message.username}: </strong>
                         {message.text}
+                        {message.username === username && (
+                            <Button variant="outlined" color="error" onClick={() => handleDeleteMessage(message.id)}>
+                                Delete
+                            </Button>
+                        )}
                     </li>
                 ))}
             </ul>

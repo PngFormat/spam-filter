@@ -2,19 +2,21 @@ import express from 'express';
 import http from 'http';
 import bodyParser from 'body-parser';
 import mongoose from 'mongoose';
-import {Server} from 'socket.io';
+import { Server } from 'socket.io';
 import bcrypt from 'bcrypt';
-import cors from 'cors'
+import cors from 'cors';
 import jwt from "jsonwebtoken";
-import {authenticateToken} from './middleware/authMiddleware.js';
-import {config} from 'dotenv';
+import { authenticateToken } from './middleware/authMiddleware.js';
+import { config } from 'dotenv';
+import Filter from 'bad-words';
 
 config();
-const secretKey = 'key'
+const secretKey = 'key';
 const generateAuthToken = (user) => {
-    return jwt.sign({userId: user._id}, secretKey, {expiresIn: '1h'});
+    return jwt.sign({ userId: user._id }, secretKey, { expiresIn: '1h' });
 };
 
+const profanityFilter = new Filter();
 
 const app = express();
 const server = http.createServer(app);
@@ -100,6 +102,16 @@ io.on('connection', (socket) => {
 app.post('/api/messages', async (req, res) => {
     const { text, username } = req.body;
     console.log('Received message:', req.body);
+
+    const isMessageAllowed = (messageText) => {
+        return !filter.isProfane(messageText);
+    };
+
+    if (profanityFilter.isProfane(text)) {
+        console.log('Message contains inappropriate content:', text);
+        return res.status(400).json({ message: 'Сообщение содержит нежелательный контент и не может быть отправлено' });
+    }
+
     try {
         const newMessage = new MessageModel({ text, username });
         await newMessage.save();
@@ -112,8 +124,6 @@ app.post('/api/messages', async (req, res) => {
     }
 });
 
-
-
 app.get('/api/messages', async (req, res) => {
     try {
         const messages = await MessageModel.find();
@@ -121,6 +131,21 @@ app.get('/api/messages', async (req, res) => {
     } catch (error) {
         console.error('Error fetching messages:', error);
         res.status(500).json({ message: 'Error fetching messages' });
+    }
+});
+
+
+app.delete('/api/messages/:messageId', async (req, res) => {
+    const { messageId } = req.params;
+    try {
+        const deletedMessage = await MessageModel.findByIdAndDelete(messageId);
+        if (!deletedMessage) {
+            return res.status(404).json({ message: 'Message not found' });
+        }
+        res.status(200).json({ message: 'Message deleted successfully', deletedMessage });
+    } catch (error) {
+        console.error('Error deleting message:', error);
+        res.status(500).json({ message: 'Error deleting message' });
     }
 });
 
@@ -216,4 +241,3 @@ app.get('/api/user/:username', async (req, res) => {
 server.listen(3001, () => {
     console.log('Server is running on port 3001');
 });
-
