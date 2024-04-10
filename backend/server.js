@@ -74,7 +74,7 @@ db.on('close', () => {
     console.log('Connection to MongoDB closed');
 });
 
-console.log(`Initial connection status: ${db.readyState}`);
+console.log(`Initial caonnection status: ${db.readyState}`);
 
 const userSchema = new mongoose.Schema({
     username: String,
@@ -84,6 +84,7 @@ const userSchema = new mongoose.Schema({
 });
 
 const messageSchema = new mongoose.Schema({
+    id: String,
     text: String,
     username: String,
 });
@@ -137,10 +138,14 @@ app.get('/api/messages', async (req, res) => {
 
 app.delete('/api/messages/:messageId', async (req, res) => {
     const { messageId } = req.params;
+    const userId = req.user?.id;
+    if (!userId) {
+        return res.status(401).json({ message: 'User is not authenticated' });
+    }
     try {
-        const deletedMessage = await MessageModel.findByIdAndDelete(messageId);
+        const deletedMessage = await MessageModel.findOneAndDelete({ _id: messageId, userId });
         if (!deletedMessage) {
-            return res.status(404).json({ message: 'Message not found' });
+            return res.status(404).json({ message: 'Message not found or unauthorized' });
         }
         res.status(200).json({ message: 'Message deleted successfully', deletedMessage });
     } catch (error) {
@@ -188,7 +193,7 @@ app.get('/api/user/:username', async (req, res) => {
         if (!user) {
             return res.status(404).json({ message: 'User not found' });
         }
-        res.json(user);
+        res.json({ id: user._id, ...user.toObject() });
     } catch (error) {
         console.error('Error fetching user:', error);
         res.status(500).json({ message: 'Error fetching user' });

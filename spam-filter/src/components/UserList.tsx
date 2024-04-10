@@ -13,6 +13,7 @@ const UserList: React.FC<{ users: any[] }> = ({ users }) => {
                 {users.map((user) => (
                     <ListItem key={user._id}>
                         <ListItemText primary={`Nickname ${user.username}`} secondary={`@Email ${user.email}`} />
+                        <span>{user._id}</span>
                     </ListItem>
                 ))}
             </List>

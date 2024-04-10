@@ -5,7 +5,7 @@ import axios from 'axios';
 import { v4 as uuidv4 } from 'uuid';
 
 interface Message {
-    id: number;
+    _id: string;
     text: string;
     username: string;
 }
@@ -24,13 +24,18 @@ interface ChatProps {
 const Chat: React.FC<ChatProps> = ({ currentUser, username }) => {
     const classes = styles;
     const [messages, setMessages] = useState<Message[]>([]);
-    const [newMessage, setNewMessage] = useState<string>('');
+    const [newMessage, setNewMessage] = useState<string>('')
+
+
 
     useEffect(() => {
         const fetchMessages = async () => {
             try {
                 const response = await axios.get('http://localhost:3001/api/messages');
                 const storedMessages = response.data;
+                storedMessages.forEach((message: { _id: string; }) => {
+                    console.log('id:', message._id);
+                });
                 setMessages(storedMessages);
             } catch (error) {
                 console.error('Error fetching messages:', error);
@@ -51,11 +56,10 @@ const Chat: React.FC<ChatProps> = ({ currentUser, username }) => {
             console.warn('Message text is empty');
             return;
         }
-
+        console.log('UserId' + currentUser.id)
         if (currentUser) {
-            const messageId = uuidv4();
-            console.log(messageId + 'id')
-            axios.post('http://localhost:3001/api/messages', { id: messageId, text: newMessage, username })
+            axios.post('http://localhost:3001/api/messages', { text: newMessage, userId: currentUser.id, username })
+
                 .then(response => {
                     const newMessageObj: Message = response.data;
                     setMessages(prevMessages => [...prevMessages, newMessageObj]);
@@ -68,20 +72,26 @@ const Chat: React.FC<ChatProps> = ({ currentUser, username }) => {
         } else {
             alert('You need to log in first.');
         }
-
     };
 
-    const handleDeleteMessage = (messageId: number) => {
-        console.log(messageId)
-        axios.delete(`http://localhost:3001/api/messages/${messageId.toString()}`)
+    const handleDeleteMessage = (messageId: string) => {
+        console.log("Deleting message with ID:", messageId);
+        const authToken = localStorage.getItem('authToken');
+        axios.delete(`http://localhost:3001/api/messages/${messageId}`, {
+            headers: {
+                Authorization: `Bearer ${authToken}`
+            }
+        })
             .then(response => {
-                setMessages(prevMessages => prevMessages.filter(message => message.id !== messageId));
+                setMessages(prevMessages => prevMessages.filter(message => message._id !== messageId));
             })
             .catch(error => {
                 console.error('Error deleting message:', error);
                 alert('Failed to delete message. Please try again later.');
             });
     };
+
+
 
 
 
@@ -93,11 +103,11 @@ const Chat: React.FC<ChatProps> = ({ currentUser, username }) => {
 
             <ul className={classes.messageList}>
                 {messages.map(message => (
-                    <li key={message.id} className={classes.messageItem}>
+                    <li key={message._id} className={classes.messageItem}>
                         <strong>{message.username}: </strong>
                         {message.text}
                         {message.username === username && (
-                            <Button variant="outlined" color="error" onClick={() => handleDeleteMessage(message.id)}>
+                            <Button variant="outlined" color="error" onClick={() => handleDeleteMessage(message._id)}>
                                 Delete
                             </Button>
                         )}

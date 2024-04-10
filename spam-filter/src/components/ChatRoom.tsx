@@ -34,12 +34,13 @@ const ChatRoom: React.FC = () => {
     useEffect(() => {
         const authToken = localStorage.getItem('authToken');
         if (authToken && !currentUser) {
-            axios.get('http://localhost:3001/api/user', {
+            axios.get('http://localhost:3001/api/users', {
                 headers: {
                     Authorization: `Bearer ${authToken}`
                 }
             }).then(response => {
                 setCurrentUser(response.data);
+                console.log('fetch' + response.data)
                 setName(response.data.name);
             }).catch(error => {
                 console.error('Error fetching user data:', error);
@@ -71,9 +72,9 @@ const ChatRoom: React.FC = () => {
             }
         }).then(response => {
             const newUser: User = response.data;
-            setCurrentUser(newUser);
+            setCurrentUser(newUser)
             localStorage.setItem('currentUser', JSON.stringify(newUser));
-            setName(username);
+            setName(response.data.username);
             localStorage.setItem('username', username);
         }).catch(error => {
             console.error('Error fetching user data:', error);
