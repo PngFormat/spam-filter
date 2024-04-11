@@ -23,7 +23,6 @@ const UserPage = () => {
     return (
         <>
             <CssBaseline />
-            <Header />
             <Container maxWidth="lg" style={{ marginTop: 20 }}>
                 <Typography variant="h4" gutterBottom>
                     Registered Users

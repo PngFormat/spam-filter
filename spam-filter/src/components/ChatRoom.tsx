@@ -14,7 +14,7 @@ interface Message {
 
 interface User {
     id: number;
-    name: string;
+    username: string;
     nickname: string;
 }
 
@@ -75,7 +75,7 @@ const ChatRoom: React.FC = () => {
             setCurrentUser(newUser)
             localStorage.setItem('currentUser', JSON.stringify(newUser));
             setName(response.data.username);
-            localStorage.setItem('username', username);
+            localStorage.setItem('username', name);
         }).catch(error => {
             console.error('Error fetching user data:', error);
         });

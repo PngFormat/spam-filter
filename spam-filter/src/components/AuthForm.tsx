@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
+import WarningModal from '../components/WarningModal';
 
 interface LoginFormProps {
-    onLogin?: (token: string,username:string) => void;
+    onLogin?: (token: string, username: string) => void;
 }
 
 const LoginForm: React.FC<LoginFormProps> = ({ onLogin }) => {
@@ -10,15 +11,11 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLogin }) => {
         password: ''
     });
     const [error, setError] = useState<string>('');
-
-    const [username, setUsername] = useState<string>('');
+    const [showWarning, setShowWarning] = useState<boolean>(false);
 
     const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = event.target;
         setUserData({ ...userData, [name]: value });
-        if (name === 'username') {
-            setUsername(value);
-        }
     };
 
     const handleLogin = async () => {
@@ -39,14 +36,14 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLogin }) => {
 
             const data = await response.json();
             authToken = data.authToken;
-            localStorage.setItem('username', username);
 
             if (onLogin) {
-                onLogin(authToken, username);
+                onLogin(authToken, userData.username);
             }
         } catch (error) {
-            console.error('Authentication error:', (error as Error).message);
+            console.error('Authentication error:', error);
             setError('Authentication failed. Please check your credentials.');
+            setShowWarning(true);
         }
     };
 
@@ -74,6 +71,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLogin }) => {
             <br />
             <button onClick={handleLogin}>Login</button>
             {error && <p style={{ color: 'red' }}>{error}</p>}
+            {showWarning && <WarningModal isOpen={showWarning} onClose={() => setShowWarning(false)} />}
         </div>
     );
 };

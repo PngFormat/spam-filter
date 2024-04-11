@@ -14,6 +14,9 @@ const Header = () => {
                 <Link to="/blocked-users" style={{ textDecoration: 'none', color: 'inherit' }}>
                     <Button color="inherit">BlackList</Button>
                 </Link>
+                <Link to="/сhat" style={{ textDecoration: 'none', color: 'inherit' }}>
+                    <Button color="inherit">ChatROOM</Button>
+                </Link>
             </Toolbar>
         </AppBar>
     );

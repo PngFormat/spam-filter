@@ -12,7 +12,7 @@ interface Message {
 
 interface User {
     id: number;
-    name: string;
+    username: string;
     nickname: string;
 }
 
@@ -33,9 +33,6 @@ const Chat: React.FC<ChatProps> = ({ currentUser, username }) => {
             try {
                 const response = await axios.get('http://localhost:3001/api/messages');
                 const storedMessages = response.data;
-                storedMessages.forEach((message: { _id: string; }) => {
-                    console.log('id:', message._id);
-                });
                 setMessages(storedMessages);
             } catch (error) {
                 console.error('Error fetching messages:', error);
@@ -43,7 +40,7 @@ const Chat: React.FC<ChatProps> = ({ currentUser, username }) => {
         };
 
         fetchMessages();
-    }, []);
+    }, [messages]);
 
     useEffect(() => {
         return () => {
@@ -74,21 +71,22 @@ const Chat: React.FC<ChatProps> = ({ currentUser, username }) => {
         }
     };
 
-    const handleDeleteMessage = (messageId: string) => {
+    const handleDeleteMessage = async (messageId: string) => {
         console.log("Deleting message with ID:", messageId);
         const authToken = localStorage.getItem('authToken');
-        axios.delete(`http://localhost:3001/api/messages/${messageId}`, {
-            headers: {
-                Authorization: `Bearer ${authToken}`
-            }
-        })
-            .then(response => {
-                setMessages(prevMessages => prevMessages.filter(message => message._id !== messageId));
-            })
-            .catch(error => {
-                console.error('Error deleting message:', error);
-                alert('Failed to delete message. Please try again later.');
+
+        try {
+            await axios.delete(`http://localhost:3001/api/messages/${messageId}`, {
+                headers: {
+                    Authorization: `Bearer ${authToken}`
+                }
             });
+
+            setMessages(prevMessages => prevMessages.filter(message => message._id !== messageId));
+        } catch (error) {
+            console.error('Error deleting message:', error);
+            alert('Failed to delete message. Please try again later.');
+        }
     };
 
 
@@ -98,7 +96,7 @@ const Chat: React.FC<ChatProps> = ({ currentUser, username }) => {
     return (
         <div>
             <Typography variant="body1" paragraph>
-                Welcome, {username} ({currentUser.id})!
+                Welcome, {currentUser.username} ({currentUser.id})!
             </Typography>
 
             <ul className={classes.messageList}>
@@ -107,7 +105,7 @@ const Chat: React.FC<ChatProps> = ({ currentUser, username }) => {
                         <strong>{message.username}: </strong>
                         {message.text}
                         {message.username === username && (
-                            <Button variant="outlined" color="error" onClick={() => handleDeleteMessage(message._id)}>
+                            <Button variant="outlined" color="error" onClick={() => handleDeleteMessage(message.text)}>
                                 Delete
                             </Button>
                         )}
