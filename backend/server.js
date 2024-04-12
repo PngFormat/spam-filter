@@ -15,8 +15,9 @@ const secretKey = 'key';
 const generateAuthToken = (user) => {
     return jwt.sign({ userId: user._id }, secretKey, { expiresIn: '1h' });
 };
-
+const lastMessageTime = {};
 const profanityFilter = new Filter();
+const messageCount = {};
 
 const app = express();
 const server = http.createServer(app);
@@ -104,20 +105,34 @@ app.post('/api/messages', async (req, res) => {
     const { text, username } = req.body;
     console.log('Received message:', req.body);
 
-    const isMessageAllowed = (messageText) => {
-        return !filter.isProfane(messageText);
-    };
+    const currentTime = Date.now();
+
+    if (messageCount[username] && messageCount[username] >= 3) {
+        if (lastMessageTime[username]) {
+            const timeDifference = currentTime - lastMessageTime[username];
+
+            if (timeDifference < 6000) {
+                const timeLeft = Math.ceil((6000 - timeDifference) / 1000);
+                return res.status(429).json({ message: `Пожалуйста, подождите ${timeLeft} секунд перед отправкой следующего сообщения` });
+            }
+        }
+    }
 
     if (profanityFilter.isProfane(text)) {
         console.log('Message contains inappropriate content:', text);
         return res.status(400).json({ message: 'Сообщение содержит нежелательный контент и не может быть отправлено' });
     }
 
+    lastMessageTime[username] = currentTime;
+
     try {
         const newMessage = new MessageModel({ text, username });
         await newMessage.save();
         console.log('Message saved successfully:', newMessage);
         io.emit('newMessage', newMessage);
+
+        messageCount[username] = (messageCount[username] || 0) + 1;
+
         res.status(201).json(newMessage);
     } catch (error) {
         console.error('Error saving message:', error);
@@ -136,21 +151,22 @@ app.get('/api/messages', async (req, res) => {
 });
 
 
-app.delete('/api/messages/:messageId', async (req, res) => {
-    const { messageId } = req.params;
+app.delete('/api/messages/:messageText', async (req, res) => {
+    const { messageText } = req.params;
     const userId = req.user?.id;
-    if (!userId) {
-        return res.status(401).json({ message: 'User is not authenticated' });
-    }
+
     try {
-        const deletedMessage = await MessageModel.findOneAndDelete({ _id: messageId, userId });
+        const deletedMessage = await MessageModel.findOneAndDelete({ text: messageText, userId });
+
+
         if (!deletedMessage) {
-            return res.status(404).json({ message: 'Message not found or unauthorized' });
+            return res.status(404).json({ message: 'Сообщение не найдено или не удалось удалить' });
         }
-        res.status(200).json({ message: 'Message deleted successfully', deletedMessage });
+
+        res.status(200).json({ message: 'Сообщение удалено успешно', deletedMessage });
     } catch (error) {
-        console.error('Error deleting message:', error);
-        res.status(500).json({ message: 'Error deleting message' });
+        console.error('Ошибка при удалении сообщения:', error);
+        res.status(500).json({ message: 'Ошибка при удалении сообщения' });
     }
 });
 
