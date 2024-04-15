@@ -9,6 +9,7 @@ import jwt from "jsonwebtoken";
 import { authenticateToken } from './middleware/authMiddleware.js';
 import { config } from 'dotenv';
 import Filter from 'bad-words';
+import * as fs from "fs";
 
 config();
 const secretKey = 'key';
@@ -18,7 +19,8 @@ const generateAuthToken = (user) => {
 const lastMessageTime = {};
 const profanityFilter = new Filter();
 const messageCount = {};
-
+const rusBadWords = JSON.parse(fs.readFileSync('./rus-badwords.json', 'utf-8'));
+const rusProfanityFilter = new Filter({ list: rusBadWords });
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
@@ -118,7 +120,7 @@ app.post('/api/messages', async (req, res) => {
         }
     }
 
-    if (profanityFilter.isProfane(text)) {
+    if (profanityFilter.isProfane(text) || rusProfanityFilter.isProfane(text)) {
         console.log('Message contains inappropriate content:', text);
         return res.status(400).json({ message: 'Сообщение содержит нежелательный контент и не может быть отправлено' });
     }
