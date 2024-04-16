@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Container, Typography } from '@mui/material';
+import { Container, Typography, Button } from '@mui/material';
 
 interface User {
     id: number;
     name: string;
 }
+
 const BlockedUsersPage = () => {
     const [blockedUsers, setBlockedUsers] = useState<User[]>([]);
 
@@ -22,6 +23,15 @@ const BlockedUsersPage = () => {
         fetchBlockedUsers();
     }, []);
 
+    const handleUnblockUser = async (userId: number) => {
+        try {
+            await axios.delete(`http://localhost:3001/api/blocked-users/${userId}`);
+            setBlockedUsers(prevUsers => prevUsers.filter(user => user.id !== userId));
+        } catch (error) {
+            console.error('Error unblocking user:', error);
+        }
+    };
+
     return (
         <Container maxWidth="lg">
             <Typography variant="h4" gutterBottom>
@@ -30,7 +40,12 @@ const BlockedUsersPage = () => {
             {blockedUsers.length > 0 ? (
                 <ul>
                     {blockedUsers.map(user => (
-                        <li key={user.id}>{user.name}</li>
+                        <li key={user.id}>
+                            {user.name}
+                            <Button variant="contained" color="primary" onClick={() => handleUnblockUser(user.id)}>
+                                Unblock
+                            </Button>
+                        </li>
                     ))}
                 </ul>
             ) : (

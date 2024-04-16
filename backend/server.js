@@ -16,16 +16,17 @@ const secretKey = 'key';
 const generateAuthToken = (user) => {
     return jwt.sign({ userId: user._id }, secretKey, { expiresIn: '1h' });
 };
+const blacklistedUsers = {};
 const lastMessageTime = {};
-const profanityFilter = new Filter();
 const messageCount = {};
-const rusBadWords = JSON.parse(fs.readFileSync('./rus-badwords.json', 'utf-8'));
-const rusProfanityFilter = new Filter({ list: rusBadWords });
+const rusBadWords = JSON.parse(fs.readFileSync('rusbadwords.json', 'utf-8'));
+const rusProfanityFilter = new Filter({ list: rusBadWords, options: { caseSensitive: false } });
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
     cors: {
         origin: 'http://localhost:3000',
+
         methods: ['GET', 'POST'],
         credentials: true,
     },
@@ -79,6 +80,11 @@ db.on('close', () => {
 
 console.log(`Initial caonnection status: ${db.readyState}`);
 
+const blacklistedUserSchema = new mongoose.Schema({
+    username: String,
+    reason: String,
+});
+
 const userSchema = new mongoose.Schema({
     username: String,
     email: String,
@@ -94,6 +100,18 @@ const messageSchema = new mongoose.Schema({
 
 const MessageModel = mongoose.model('Message', messageSchema);
 const UserModel = mongoose.model('User', userSchema);
+const BlacklistedUserModel = mongoose.model('BlacklistedUser', blacklistedUserSchema);
+
+
+const addToBlacklist = async (username, reason) => {
+    try {
+        const blacklistedUser = new BlacklistedUserModel({ username, reason });
+        await blacklistedUser.save();
+        console.log(`User ${username} is added to blacklist for reason: ${reason}`);
+    } catch (error) {
+        console.error('Error adding user to blacklist:', error);
+    }
+};
 
 io.on('connection', (socket) => {
     console.log('Client connected');
@@ -120,15 +138,24 @@ app.post('/api/messages', async (req, res) => {
         }
     }
 
-    if (profanityFilter.isProfane(text) || rusProfanityFilter.isProfane(text)) {
+    let censoredText = text;
+
+    if (rusProfanityFilter.isProfane(text)) {
         console.log('Message contains inappropriate content:', text);
-        return res.status(400).json({ message: 'Сообщение содержит нежелательный контент и не может быть отправлено' });
+
+        censoredText = text.replace(rusProfanityFilter, (match) => '*'.repeat(match.length));
+        await addToBlacklist(username, 'матерные сообщения');
+        return res.status(403).json({ message: 'Вы заблокированы за некорректное поведение' });
     }
 
     lastMessageTime[username] = currentTime;
 
     try {
-        const newMessage = new MessageModel({ text, username });
+        const isUserBlacklisted = blacklistedUsers[username];
+        if (isUserBlacklisted) {
+            return res.status(403).json({ message: 'Вы заблокированы и не можете отправлять сообщения' });
+        }
+        const newMessage = new MessageModel({ text: censoredText, username });
         await newMessage.save();
         console.log('Message saved successfully:', newMessage);
         io.emit('newMessage', newMessage);
@@ -141,6 +168,7 @@ app.post('/api/messages', async (req, res) => {
         res.status(500).json({ message: 'Error saving message' });
     }
 });
+
 
 app.get('/api/messages', async (req, res) => {
     try {

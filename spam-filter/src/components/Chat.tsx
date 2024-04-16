@@ -3,6 +3,8 @@ import { Button, TextField, Typography } from '@mui/material';
 import styles from '../styles/Home.module.css';
 import axios from 'axios';
 import { v4 as uuidv4 } from 'uuid';
+import Filter from 'bad-words';
+import rusBadWords from '../rusbadwords.json';
 
 interface Message {
     _id: string;
@@ -24,9 +26,9 @@ interface ChatProps {
 const Chat: React.FC<ChatProps> = ({ currentUser, username }) => {
     const classes = styles;
     const [messages, setMessages] = useState<Message[]>([]);
-    const [newMessage, setNewMessage] = useState<string>('')
-
-
+    const [newMessage, setNewMessage] = useState<string>('');
+    const filter = new Filter();
+    const rusFilter = new Set(rusBadWords);
 
     useEffect(() => {
         const fetchMessages = async () => {
@@ -55,8 +57,8 @@ const Chat: React.FC<ChatProps> = ({ currentUser, username }) => {
         }
         console.log('UserId' + currentUser.id)
         if (currentUser) {
-            axios.post('http://localhost:3001/api/messages', { text: newMessage, userId: currentUser.id, username })
-
+            const censoredMessage = censorMessage(newMessage);
+            axios.post('http://localhost:3001/api/messages', { text: censoredMessage, userId: currentUser.id, username })
                 .then(response => {
                     const newMessageObj: Message = response.data;
                     setMessages(prevMessages => [...prevMessages, newMessageObj]);
@@ -64,7 +66,6 @@ const Chat: React.FC<ChatProps> = ({ currentUser, username }) => {
                 })
                 .catch(error => {
                     console.error('Error sending message:', error);
-                    alert('Failed to send message. Please try again later.');
                 });
         } else {
             alert('You need to log in first.');
@@ -89,8 +90,20 @@ const Chat: React.FC<ChatProps> = ({ currentUser, username }) => {
         }
     };
 
-
-
+    const censorMessage = (message: string) => {
+        return message
+            .split(/\s+/)
+            .map(word => {
+                if (filter.isProfane(word)) {
+                    return '*'.repeat(word.length);
+                } else if (rusFilter.has(word.toLowerCase())) {
+                    return '*'.repeat(word.length);
+                } else {
+                    return word;
+                }
+            })
+            .join(' ');
+    };
 
 
     return (
