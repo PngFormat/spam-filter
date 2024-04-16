@@ -55,9 +55,18 @@ const Chat: React.FC<ChatProps> = ({ currentUser, username }) => {
             console.warn('Message text is empty');
             return;
         }
-        console.log('UserId' + currentUser.id)
+
         if (currentUser) {
+            const profaneWordCount = countProfaneWords(newMessage);
+            console.log(profaneWordCount)
+            if (profaneWordCount > 2) {
+                addToBlacklist(currentUser.username, 'Excessive profanity');
+                alert('Excessive profanity detected. Your message cannot be sent.');
+                return;
+            }
+
             const censoredMessage = censorMessage(newMessage);
+
             axios.post('http://localhost:3001/api/messages', { text: censoredMessage, userId: currentUser.id, username })
                 .then(response => {
                     const newMessageObj: Message = response.data;
@@ -71,6 +80,33 @@ const Chat: React.FC<ChatProps> = ({ currentUser, username }) => {
             alert('You need to log in first.');
         }
     };
+
+    const addToBlacklist = (username: string, reason: string) => {
+        axios.post('http://localhost:3001/api/blacklist', { username, reason })
+            .then(response => {
+                console.log(`User ${username} added to the blacklist for reason: ${reason}`);
+            })
+            .catch(error => {
+                console.error('Error adding user to blacklist:', error);
+            });
+    };
+    let profaneCount = 0;
+    const countProfaneWords = (message: string): number => {
+        const words = message.split(/\s+/);
+        let profaneCount = 0;
+
+        words.forEach(word => {
+            if (filter.isProfane(word) || rusFilter.has(word.toLowerCase())) {
+                console.log(`Processing word: ${word}`);
+                console.log(`Profane word detected: ${word}`);
+                profaneCount++;
+                console.log(`Total profane word count: ${profaneCount}`);
+            }
+        });
+
+        return profaneCount;
+    };
+
 
     const handleDeleteMessage = async (messageId: string) => {
         console.log("Deleting message with ID:", messageId);
