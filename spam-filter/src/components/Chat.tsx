@@ -29,7 +29,6 @@ const Chat: React.FC<ChatProps> = ({ currentUser, username }) => {
     const [newMessage, setNewMessage] = useState<string>('');
     const filter = new Filter();
     const rusFilter = new Set(rusBadWords);
-
     useEffect(() => {
         const fetchMessages = async () => {
             try {
@@ -46,9 +45,24 @@ const Chat: React.FC<ChatProps> = ({ currentUser, username }) => {
 
     useEffect(() => {
         return () => {
-            localStorage.setItem('chatMessages', JSON.stringify(messages));
+                localStorage.setItem('chatMessages', JSON.stringify(messages));
         };
     }, [messages]);
+
+
+    const addToBlacklist = async (username: string, reason: string) => {
+        try {
+            const authToken = localStorage.getItem('authToken');
+            await axios.post('http://localhost:3001/api/blacklist', { username, reason }, {
+                headers: {
+                    Authorization: `Bearer ${authToken}`
+                }
+            });
+            console.log(`User ${username} added to blacklist for reason: ${reason}`);
+        } catch (error) {
+            console.error('Error adding user to blacklist:', error);
+        }
+    };
 
     const handleSendMessage = () => {
         if (!newMessage.trim()) {
@@ -94,9 +108,8 @@ const Chat: React.FC<ChatProps> = ({ currentUser, username }) => {
         return message
             .split(/\s+/)
             .map(word => {
-                if (filter.isProfane(word)) {
-                    return '*'.repeat(word.length);
-                } else if (rusFilter.has(word.toLowerCase())) {
+                if (filter.isProfane(word) || rusFilter.has(word.toLowerCase())) {
+                    addToBlacklist(currentUser.username, 'inappropriate words');
                     return '*'.repeat(word.length);
                 } else {
                     return word;
@@ -104,7 +117,6 @@ const Chat: React.FC<ChatProps> = ({ currentUser, username }) => {
             })
             .join(' ');
     };
-
 
     return (
         <div>

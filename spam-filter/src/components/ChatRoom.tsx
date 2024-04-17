@@ -23,7 +23,12 @@ const ChatRoom: React.FC = () => {
 
     const [currentUser, setCurrentUser] = useState<User | null>(() => {
         const storedUser = localStorage.getItem('currentUser');
-        return storedUser ? JSON.parse(storedUser) : null;
+        try {
+            return storedUser ? JSON.parse(storedUser) : null;
+        } catch (error) {
+            console.error('Error parsing stored user:', error);
+            return null;
+        }
     });
 
     const [name, setName] = useState<string>('');
