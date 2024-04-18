@@ -1,20 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Container, Typography, Button } from '@mui/material';
+import { Container, Typography, Button, CircularProgress } from '@mui/material';
+import styles from '../styles/BlackList.module.css';
 
 interface User {
-    id: number;
-    name: string;
+    _id: number;
+    username: string;
 }
 
 const BlockedUsersPage = () => {
     const [blockedUsers, setBlockedUsers] = useState<User[]>([]);
+    const [loading, setLoading] = useState<boolean>(true);
 
     useEffect(() => {
         const fetchBlockedUsers = async () => {
             try {
-                const response = await axios.get('http://localhost:3001/api/blocked-users');
+                const response = await axios.get('http://localhost:3001/api/blacklist');
                 setBlockedUsers(response.data);
+                setLoading(false);
             } catch (error) {
                 console.error('Error fetching blocked users:', error);
             }
@@ -25,31 +28,41 @@ const BlockedUsersPage = () => {
 
     const handleUnblockUser = async (userId: number) => {
         try {
-            await axios.delete(`http://localhost:3001/api/blocked-users/${userId}`);
-            setBlockedUsers(prevUsers => prevUsers.filter(user => user.id !== userId));
         } catch (error) {
             console.error('Error unblocking user:', error);
         }
     };
 
     return (
-        <Container maxWidth="lg">
-            <Typography variant="h4" gutterBottom>
+        <Container maxWidth="lg" className={styles.root}>
+            <Typography variant="h4" gutterBottom className={styles.title}>
                 Blocked Users
             </Typography>
-            {blockedUsers.length > 0 ? (
-                <ul>
+            {loading ? (
+                <CircularProgress />
+            ) : blockedUsers.length > 0 ? (
+                <ul className={styles.userList}>
                     {blockedUsers.map(user => (
-                        <li key={user.id}>
-                            {user.name}
-                            <Button variant="contained" color="primary" onClick={() => handleUnblockUser(user.id)}>
+                        <li key={user._id} className={styles.userItem}>
+                            <div className={styles.userInfo}>
+                                <Typography variant="h6" className={styles.username}>Username:</Typography>
+                                <Typography variant="body1" className={styles.usernameValue}>{user.username}</Typography>
+                                <Typography variant="h6" className={styles.userId}>User ID:</Typography>
+                                <Typography variant="body1" className={styles.userIdValue}>{user._id}</Typography>
+                            </div>
+                            <Button
+                                variant="contained"
+                                color="primary"
+                                className={styles.unblockButton}
+                                onClick={() => handleUnblockUser(user._id)}
+                            >
                                 Unblock
                             </Button>
                         </li>
                     ))}
                 </ul>
             ) : (
-                <Typography variant="body1">No users are currently blocked.</Typography>
+                <Typography variant="body1" className={styles.noUsersMessage}>No users are currently blocked.</Typography>
             )}
         </Container>
     );

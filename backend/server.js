@@ -10,12 +10,10 @@ import { authenticateToken } from './middleware/authMiddleware.js';
 import { config } from 'dotenv';
 import Filter from 'bad-words';
 import * as fs from "fs";
-
-config();
+import { BlacklistedUserModel, BlacklistedReceiverModel, UserModel, MessageModel } from './Schema.js';
+import addToBlackList from "./addToBlackList.js";
 const secretKey = 'key';
-const generateAuthToken = (user) => {
-    return jwt.sign({ userId: user._id }, secretKey, { expiresIn: '1h' });
-};
+const userBadWordCount = {};
 const blacklistedUsers = {};
 const lastMessageTime = {};
 const messageCount = {};
@@ -31,6 +29,8 @@ const io = new Server(server, {
         credentials: true,
     },
 });
+
+config();
 
 app.use(cors({
     origin: 'http://localhost:3000',
@@ -80,28 +80,6 @@ db.on('close', () => {
 
 console.log(`Initial caonnection status: ${db.readyState}`);
 
-const blacklistedUserSchema = new mongoose.Schema({
-    username: String,
-    reason: String,
-});
-
-const userSchema = new mongoose.Schema({
-    username: String,
-    email: String,
-    password: String,
-
-});
-
-const messageSchema = new mongoose.Schema({
-    id: String,
-    text: String,
-    username: String,
-});
-
-const MessageModel = mongoose.model('Message', messageSchema);
-const UserModel = mongoose.model('User', userSchema);
-const BlacklistedUserModel = mongoose.model('BlacklistedUser', blacklistedUserSchema);
-
 
 
 
@@ -113,53 +91,90 @@ io.on('connection', (socket) => {
     });
 });
 
-
 app.post('/api/blacklist', async (req, res) => {
     const { username, reason } = req.body;
 
     try {
+        const existingUser = await UserModel.findOne({ username });
+        if (!existingUser) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        const existingBlacklistedUser = await BlacklistedUserModel.findOne({ username });
+        if (existingBlacklistedUser) {
+            return res.status(400).json({ message: 'User already blacklisted' });
+        }
+
         const blacklistedUser = new BlacklistedUserModel({ username, reason });
         await blacklistedUser.save();
-        console.log(`User ${username} is added to the blacklist for reason: ${reason}`);
-        res.status(201).json({ message: 'User added to blacklist successfully' });
+
+        res.status(201).json({ message: `User ${username} added to blacklist for reason: ${reason}` });
     } catch (error) {
         console.error('Error adding user to blacklist:', error);
         res.status(500).json({ message: 'Error adding user to blacklist' });
     }
 });
 
+app.get('/api/blacklist', async (req, res) => {
+    try {
+        const blacklist = await BlacklistedUserModel.find({}, 'username reason');
+        res.status(200).json(blacklist);
+    } catch (error) {
+        console.error('Error fetching blacklist:', error);
+        res.status(500).json({ message: 'Error fetching blacklist' });
+    }
+});
+
 app.post('/api/messages', async (req, res) => {
-    const { text, username } = req.body;
+    const { text, userId, username } = req.body;
     console.log('Received message:', req.body);
 
     const currentTime = Date.now();
 
-    // if (messageCount[username] && messageCount[username] >= 3) {
-    //     if (lastMessageTime[username]) {
-    //         const timeDifference = currentTime - lastMessageTime[username];
-    //
-    //         if (timeDifference < 6000) {
-    //             const timeLeft = Math.ceil((6000 - timeDifference) / 1000);
-    //             return res.status(429).json({ message: `Пожалуйста, подождите ${timeLeft} секунд перед отправкой следующего сообщения` });
-    //         }
-    //     }
-    // }
+    if (messageCount[username] && messageCount[username] >= 3) {
+        if (lastMessageTime[username]) {
+            const timeDifference = currentTime - lastMessageTime[username];
 
-    let censoredText = text;
+            if (timeDifference < 6000) {
+                const timeLeft = Math.ceil((6000 - timeDifference) / 1000);
+                return res.status(429).json({ message: `Пожалуйста, подождите ${timeLeft} секунд перед отправкой следующего сообщения` });
+            }
+        }
+    }
 
-    if (rusProfanityFilter.isProfane(text)) {
-        console.log('Message contains inappropriate content:', text);
-        await addToBlacklist(username, 'матерные сообщения');
+    if (userBadWordCount[username] && userBadWordCount[username] >= 2) {
+        await addToBlackList(username, 'матерные сообщения');
         return res.status(403).json({ message: 'Вы заблокированы за некорректное поведение' });
     }
 
+    let censoredText = text;
+    let badWordCount = 0;
+
+    if (rusProfanityFilter.isProfane(text)) {
+        console.log('Message contains inappropriate content:', text);
+
+        censoredText = text.replace(rusProfanityFilter, (match) => {
+            badWordCount++;
+            console.log(badWordCount)
+            return '*'.repeat(match.length);
+        });
+
+        if (badWordCount > 0) {
+            userBadWordCount[username] = (userBadWordCount[username] || 0) + badWordCount;
+        }
+    }
 
     lastMessageTime[username] = currentTime;
 
     try {
-        const isUserBlacklisted = blacklistedUsers[username];
-        if (isUserBlacklisted) {
-            return res.status(403).json({ message: 'Вы заблокированы и не можете отправлять сообщения' });
+        const isSenderBlacklisted = await BlacklistedUserModel.findOne({ username });
+        if (isSenderBlacklisted) {
+            return res.status(403).json({ message: 'You are blacklisted and cannot send messages' });
+        }
+
+        const isReceiverBlacklisted = await BlacklistedReceiverModel.findOne({ receiverId: userId });
+        if (isReceiverBlacklisted) {
+            return res.status(403).json({ message: 'You are blacklisted and cannot receive messages' });
         }
         const newMessage = new MessageModel({ text: censoredText, username });
         await newMessage.save();
@@ -174,16 +189,6 @@ app.post('/api/messages', async (req, res) => {
         res.status(500).json({ message: 'Error saving message' });
     }
 });
-
-const addToBlacklist = async (username, reason) => {
-    try {
-        const blacklistedUser = new BlacklistedUserModel({ username, reason });
-        await blacklistedUser.save();
-        console.log(`User ${username} is added to the blacklist for reason: ${reason}`);
-    } catch (error) {
-        console.error('Error adding user to blacklist:', error);
-    }
-};
 
 
 app.get('/api/messages', async (req, res) => {

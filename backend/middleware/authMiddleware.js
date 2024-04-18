@@ -1,16 +1,14 @@
-import { config } from 'dotenv';
-config();
+
 import jwt from 'jsonwebtoken';
 
-const secretKey = 'key'
-console.log('Secret key:', secretKey);
-
 export const authenticateToken = (req, res, next) => {
-    const token = req.header('Authorization');
-    if (!token) return res.status(401).json({ message: 'Access denied' });
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1];
 
-    jwt.verify(token, secretKey, (err, user) => {
-        if (err) return res.status(403).json({ message: 'Invalid token' });
+    if (token == null) return res.sendStatus(401);
+
+    jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, user) => {
+        if (err) return res.sendStatus(403);
         req.user = user;
         next();
     });
