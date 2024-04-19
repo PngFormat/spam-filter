@@ -69,9 +69,18 @@ const Chat: React.FC<ChatProps> = ({ currentUser, username }) => {
             console.warn('Message text is empty');
             return;
         }
-        console.log('UserId' + currentUser.id)
+
         if (currentUser) {
+            const profaneWordCount = countProfaneWords(newMessage);
+            console.log(profaneWordCount)
+            if (profaneWordCount > 2) {
+                addToBlacklist(currentUser.username, 'Excessive profanity');
+                alert('Excessive profanity detected. Your message cannot be sent.');
+                return;
+            }
+
             const censoredMessage = censorMessage(newMessage);
+
             axios.post('http://localhost:3001/api/messages', { text: censoredMessage, userId: currentUser.id, username })
                 .then(response => {
                     const newMessageObj: Message = response.data;
@@ -85,6 +94,24 @@ const Chat: React.FC<ChatProps> = ({ currentUser, username }) => {
             alert('You need to log in first.');
         }
     };
+
+    let profaneCount = 0;
+    const countProfaneWords = (message: string): number => {
+        const words = message.split(/\s+/);
+        let profaneCount = 0;
+
+        words.forEach(word => {
+            if (filter.isProfane(word) || rusFilter.has(word.toLowerCase())) {
+                console.log(`Processing word: ${word}`);
+                console.log(`Profane word detected: ${word}`);
+                profaneCount++;
+                console.log(`Total profane word count: ${profaneCount}`);
+            }
+        });
+
+        return profaneCount;
+    };
+
 
     const handleDeleteMessage = async (messageId: string) => {
         console.log("Deleting message with ID:", messageId);
@@ -119,18 +146,20 @@ const Chat: React.FC<ChatProps> = ({ currentUser, username }) => {
     };
 
     return (
-        <div>
-            <Typography variant="body1" paragraph>
+        <div className={classes.chatContainer}>
+            <Typography variant="body1" paragraph className={classes.welcomeMessage}>
                 Welcome, {currentUser.username} ({currentUser.id})!
             </Typography>
 
             <ul className={classes.messageList}>
                 {messages.map(message => (
                     <li key={message._id} className={classes.messageItem}>
-                        <strong>{message.username}: </strong>
-                        {message.text}
+                        <div className={classes.messageContent}>
+                            <strong>{message.username}: </strong>
+                            {message.text}
+                        </div>
                         {message.username === username && (
-                            <Button variant="outlined" color="error" onClick={() => handleDeleteMessage(message.text)}>
+                            <Button variant="outlined" color="error" onClick={() => handleDeleteMessage(message._id)}>
                                 Delete
                             </Button>
                         )}
@@ -146,7 +175,7 @@ const Chat: React.FC<ChatProps> = ({ currentUser, username }) => {
                     value={newMessage}
                     onChange={e => setNewMessage(e.target.value)}
                 />
-                <Button variant="contained" color="primary" onClick={handleSendMessage}>
+                <Button variant="contained" color="primary" onClick={handleSendMessage} className={classes.sendButton}>
                     Send
                 </Button>
             </div>

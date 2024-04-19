@@ -115,6 +115,35 @@ app.post('/api/blacklist', async (req, res) => {
     }
 });
 
+app.get('/api/blacklist', async (req, res) => {
+    try {
+        const blacklist = await BlacklistedUserModel.find({}, 'username reason');
+        res.status(200).json(blacklist);
+    } catch (error) {
+        console.error('Error fetching blacklist:', error);
+        res.status(500).json({ message: 'Error fetching blacklist' });
+    }
+});
+
+app.delete('/api/blacklist/:userId', async (req, res) => {
+    const { userId } = req.params;
+
+    try {
+        const deletedUser = await BlacklistedUserModel.findByIdAndDelete(userId);
+        if (!deletedUser) {
+            return res.status(404).json({ message: 'User is not blacklisted' });
+        }
+
+        res.status(200).json({ message: `User ${userId} has been removed from the blacklist` });
+    } catch (error) {
+        console.error('Error removing user from blacklist:', error);
+        res.status(500).json({ message: 'Error removing user from blacklist' });
+    }
+});
+
+
+
+
 app.post('/api/messages', async (req, res) => {
     const { text, userId, username } = req.body;
     console.log('Received message:', req.body);
@@ -133,7 +162,7 @@ app.post('/api/messages', async (req, res) => {
     }
 
     if (userBadWordCount[username] && userBadWordCount[username] >= 2) {
-        await addToBlacklist(username, 'матерные сообщения');
+        await addToBlackList(username, 'матерные сообщения');
         return res.status(403).json({ message: 'Вы заблокированы за некорректное поведение' });
     }
 

@@ -5,18 +5,18 @@ import Footer from '../src/components/Footer';
 import ChatRoom from './components/ChatRoom';
 import UserPage from './pages/UserPage';
 import BlockedUsersPage from "../src/pages/BlockedUsersPage";
-
 import LoginForm from "./components/AuthForm";
+import styles from '../src/styles/App.module.css';
+
 
 const App = () => {
     const handleLogin = (userData: { username: string; password: string }) => {
-
         console.log(userData);
     };
 
     return (
         <Router>
-            <div>
+            <div className={styles.container}>
                 <Header />
                 <Routes>
                     <Route path="/chat" element={<ChatRoom />} />
