@@ -3,6 +3,7 @@ import axios from 'axios';
 import { Container, CssBaseline, Typography } from '@mui/material';
 import Header from '../components/Header';
 import UserList from '../components/UserList';
+import styles from '../styles/User.module.css'
 
 const UserPage = () => {
     const [users, setUsers] = useState([]);
@@ -23,14 +24,16 @@ const UserPage = () => {
     return (
         <>
             <CssBaseline />
-            <Container maxWidth="lg" style={{ marginTop: 20 }}>
-                <Typography variant="h4" gutterBottom>
+            <Container maxWidth="lg" className={styles.container}>
+                <Typography variant="h4" gutterBottom className={styles.title}>
                     Registered Users
                 </Typography>
                 {users.length > 0 ? (
                     <UserList users={users} />
                 ) : (
-                    <Typography variant="body1">No registered users found.</Typography>
+                    <Typography variant="body1" className={styles.noUsers}>
+                        No registered users found.
+                    </Typography>
                 )}
             </Container>
         </>

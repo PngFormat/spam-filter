@@ -1,23 +1,39 @@
 import React from 'react';
 import { List, ListItem, ListItemText, Paper, Typography } from '@mui/material';
+import styles from '../styles/User.module.css'
 
 
 
 const UserList: React.FC<{ users: any[] }> = ({ users }) => {
     return (
-        <Paper elevation={3} style={{ padding: 16, marginTop: 16 }}>
-            <Typography variant="h6" gutterBottom>
-                Registered Users
-            </Typography>
-            <List>
-                {users.map((user) => (
-                    <ListItem key={user._id}>
-                        <ListItemText primary={`Nickname ${user.username}`} secondary={`@Email ${user.email}`} />
-                        <span>{user._id}</span>
-                    </ListItem>
-                ))}
-            </List>
-        </Paper>
+        <List className={styles.userList}>
+            {users.map((user) => (
+                <ListItem key={user.id} className={styles.userItem}>
+                    <ListItemText
+                        primary={
+                            <Typography variant="h6" className={styles.username}>
+                                {user.username}
+                            </Typography>
+                        }
+                        secondary={
+                            <>
+                                <Typography variant="body1" className={styles.nickname}>
+                                    {user.nickname}
+                                </Typography>
+                                <Typography variant="body2" className={styles.email}>
+                                    {user.email}
+                                </Typography>
+                                <Typography variant="body2" className={styles.id}>
+                                    ID: {user._id}
+                                </Typography>
+                            </>
+                        }
+                    />
+                </ListItem>
+            ))}
+        </List>
+
+
     );
 };
 
