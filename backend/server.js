@@ -11,15 +11,13 @@ import { config } from 'dotenv';
 import Filter from 'bad-words';
 import * as fs from "fs";
 import { BlacklistedUserModel, BlacklistedReceiverModel, UserModel, MessageModel } from './Schema.js';
-import addToBlackList from "./addToBlackList.js";
-const secretKey = 'key';
-const userBadWordCount = {};
-const blacklistedUsers = {};
-const lastMessageTime = {};
-const messageCount = {};
 const rusBadWords = JSON.parse(fs.readFileSync('rusbadwords.json', 'utf-8'));
 const rusProfanityFilter = new Filter({ list: rusBadWords, options: { caseSensitive: false } });
 const app = express();
+import * as blacklistController from "./blackList/blackListController.js";
+import * as messageController from "./messages/messageController.js";
+import * as messageMiddleware from "./messages/messageController.js";
+import {loginUser, registerUser} from "./auth&register/authContorller.js";
 const server = http.createServer(app);
 const io = new Server(server, {
     cors: {
@@ -91,154 +89,20 @@ io.on('connection', (socket) => {
     });
 });
 
-app.post('/api/blacklist', async (req, res) => {
-    const { username, reason } = req.body;
-
-    try {
-        const existingUser = await UserModel.findOne({ username });
-        if (!existingUser) {
-            return res.status(404).json({ message: 'User not found' });
-        }
-
-        const existingBlacklistedUser = await BlacklistedUserModel.findOne({ username });
-        if (existingBlacklistedUser) {
-            return res.status(400).json({ message: 'User already blacklisted' });
-        }
-
-        const blacklistedUser = new BlacklistedUserModel({ username, reason });
-        await blacklistedUser.save();
-
-        res.status(201).json({ message: `User ${username} added to blacklist for reason: ${reason}` });
-    } catch (error) {
-        console.error('Error adding user to blacklist:', error);
-        res.status(500).json({ message: 'Error adding user to blacklist' });
-    }
-});
-
-app.get('/api/blacklist', async (req, res) => {
-    try {
-        const blacklist = await BlacklistedUserModel.find({}, 'username reason');
-        res.status(200).json(blacklist);
-    } catch (error) {
-        console.error('Error fetching blacklist:', error);
-        res.status(500).json({ message: 'Error fetching blacklist' });
-    }
-});
-
-app.delete('/api/blacklist/:userId', async (req, res) => {
-    const { userId } = req.params;
-
-    try {
-        const deletedUser = await BlacklistedUserModel.findByIdAndDelete(userId);
-        if (!deletedUser) {
-            return res.status(404).json({ message: 'User is not blacklisted' });
-        }
-
-        res.status(200).json({ message: `User ${userId} has been removed from the blacklist` });
-    } catch (error) {
-        console.error('Error removing user from blacklist:', error);
-        res.status(500).json({ message: 'Error removing user from blacklist' });
-    }
-});
+app.post('/api/blacklist', blacklistController.addToBlacklist);
+app.get('/api/blacklist', blacklistController.getBlacklist);
+app.delete('/api/blacklist/:userId', blacklistController.removeFromBlacklist);
 
 
 
 
-app.post('/api/messages', async (req, res) => {
-    const { text, userId, username } = req.body;
-    console.log('Received message:', req.body);
+app.post('/api/messages', messageMiddleware.postMessage);
+app.get('/api/messages', messageController.getMessages);
+app.delete('/api/messages/:messageId', messageController.deleteMessage);
 
-    const currentTime = Date.now();
+app.post('/api/register', registerUser);
+app.post('/api/login', loginUser);
 
-    if (messageCount[username] && messageCount[username] >= 3) {
-        if (lastMessageTime[username]) {
-            const timeDifference = currentTime - lastMessageTime[username];
-
-            if (timeDifference < 6000) {
-                const timeLeft = Math.ceil((6000 - timeDifference) / 1000);
-                return res.status(429).json({ message: `Пожалуйста, подождите ${timeLeft} секунд перед отправкой следующего сообщения` });
-            }
-        }
-    }
-
-    if (userBadWordCount[username] && userBadWordCount[username] >= 2) {
-        await addToBlackList(username, 'матерные сообщения');
-        return res.status(403).json({ message: 'Вы заблокированы за некорректное поведение' });
-    }
-
-    let censoredText = text;
-    let badWordCount = 0;
-
-    if (rusProfanityFilter.isProfane(text)) {
-        console.log('Message contains inappropriate content:', text);
-
-        censoredText = text.replace(rusProfanityFilter, (match) => {
-            badWordCount++;
-            console.log(badWordCount)
-            return '*'.repeat(match.length);
-        });
-
-        if (badWordCount > 0) {
-            userBadWordCount[username] = (userBadWordCount[username] || 0) + badWordCount;
-        }
-    }
-
-    lastMessageTime[username] = currentTime;
-
-    try {
-        const isSenderBlacklisted = await BlacklistedUserModel.findOne({ username });
-        if (isSenderBlacklisted) {
-            return res.status(403).json({ message: 'You are blacklisted and cannot send messages' });
-        }
-
-        const isReceiverBlacklisted = await BlacklistedReceiverModel.findOne({ receiverId: userId });
-        if (isReceiverBlacklisted) {
-            return res.status(403).json({ message: 'You are blacklisted and cannot receive messages' });
-        }
-        const newMessage = new MessageModel({ text: censoredText, username });
-        await newMessage.save();
-        console.log('Message saved successfully:', newMessage);
-        io.emit('newMessage', newMessage);
-
-        messageCount[username] = (messageCount[username] || 0) + 1;
-
-        res.status(201).json(newMessage);
-    } catch (error) {
-        console.error('Error saving message:', error);
-        res.status(500).json({ message: 'Error saving message' });
-    }
-});
-
-
-app.get('/api/messages', async (req, res) => {
-    try {
-        const messages = await MessageModel.find();
-        res.json(messages);
-    } catch (error) {
-        console.error('Error fetching messages:', error);
-        res.status(500).json({ message: 'Error fetching messages' });
-    }
-});
-
-
-app.delete('/api/messages/:messageText', async (req, res) => {
-    const { messageText } = req.params;
-    const userId = req.user?.id;
-
-    try {
-        const deletedMessage = await MessageModel.findOneAndDelete({ text: messageText, userId });
-
-
-        if (!deletedMessage) {
-            return res.status(404).json({ message: 'Сообщение не найдено или не удалось удалить' });
-        }
-
-        res.status(200).json({ message: 'Сообщение удалено успешно', deletedMessage });
-    } catch (error) {
-        console.error('Ошибка при удалении сообщения:', error);
-        res.status(500).json({ message: 'Ошибка при удалении сообщения' });
-    }
-});
 
 app.post('/api/register', async (req, res) => {
     const { username, email, password } = req.body;
