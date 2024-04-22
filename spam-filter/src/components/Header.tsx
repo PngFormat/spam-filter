@@ -16,6 +16,9 @@ const Header = () => {
                 <Link to="/сhat" style={{ textDecoration: 'none', color: 'inherit' }}>
                     <Button color="inherit">ChatROOM</Button>
                 </Link>
+                <Link to="/info" style={{ textDecoration: 'none', color: 'inherit' }}>
+                    <Button color="inherit">Statistics</Button>
+                </Link>
             </Toolbar>
         </AppBar>
     );

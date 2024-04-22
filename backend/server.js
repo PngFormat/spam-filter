@@ -98,6 +98,7 @@ app.delete('/api/blacklist/:userId', blacklistController.removeFromBlacklist);
 
 app.post('/api/messages', messageMiddleware.postMessage);
 app.get('/api/messages', messageController.getMessages);
+app.get('/api/user/message-count', messageController.getUserMessageCount);
 app.delete('/api/messages/:messageId', messageController.deleteMessage);
 
 app.post('/api/register', registerUser);

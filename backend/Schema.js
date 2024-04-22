@@ -20,6 +20,7 @@ const messageSchema = new mongoose.Schema({
     id: String,
     text: String,
     username: String,
+    userId: String,
 });
 
 export const BlacklistedUserModel = mongoose.model('BlacklistedUser', blacklistedUserSchema);

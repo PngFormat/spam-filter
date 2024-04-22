@@ -1,28 +1,40 @@
-import {BlacklistedReceiverModel, MessageModel} from '../Schema.js';
-import {addToBlackList, filterMessage} from '../chatFilter.js';
-import {checkMessageLimit, checkUserProfanity} from "./messageMiddleware.js";
-import {BlacklistedUserModel} from "../Schema.js";
+import {BlacklistedReceiverModel, MessageModel, UserModel} from '../Schema.js';
+import { addToBlackList, filterMessage } from '../chatFilter.js';
+import { checkMessageLimit, checkUserProfanity } from "./messageMiddleware.js";
+import { BlacklistedUserModel } from "../Schema.js";
+
 const userBadWordCount = {};
 const lastMessageTime = {};
 const messageCount = {};
+
+const userMessageCount = {};
+
+const incrementUserMessageCount = async (userId) => {
+    if (!userMessageCount[userId]) {
+        userMessageCount[userId] = 1;
+    } else {
+        userMessageCount[userId]++;
+    }
+};
+
 export const postMessage = async (req, res) => {
     const { text, userId, username } = req.body;
     console.log('Received message:', req.body);
 
-    const currentTime = Date.now();
-    checkMessageLimit(username, messageCount, lastMessageTime, currentTime, res);
-
-    await checkUserProfanity(username, userBadWordCount, addToBlackList, res);
-
-    const { censoredText, badWordCount } = filterMessage(text);
-
-    if (badWordCount > 0) {
-        userBadWordCount[username] = (userBadWordCount[username] || 0) + badWordCount;
-    }
-
-    lastMessageTime[username] = currentTime;
-
     try {
+        const currentTime = Date.now();
+        checkMessageLimit(username, messageCount, lastMessageTime, currentTime, res);
+
+        await checkUserProfanity(username, userBadWordCount, addToBlackList, res);
+
+        const { censoredText, badWordCount } = filterMessage(text);
+
+        if (badWordCount > 0) {
+            userBadWordCount[username] = (userBadWordCount[username] || 0) + badWordCount;
+        }
+
+        lastMessageTime[username] = currentTime;
+
         const isSenderBlacklisted = await BlacklistedUserModel.findOne({ username });
         if (isSenderBlacklisted) {
             return res.status(403).json({ message: 'You are blacklisted and cannot send messages' });
@@ -33,16 +45,49 @@ export const postMessage = async (req, res) => {
             return res.status(403).json({ message: 'You are blacklisted and cannot receive messages' });
         }
 
-        const newMessage = new MessageModel({ text: censoredText, username });
+        const newMessage = new MessageModel({ text: censoredText, username, userId });
         await newMessage.save();
         console.log('Message saved successfully:', newMessage);
 
-        messageCount[username] = (messageCount[username] || 0) + 1;
-
+        await incrementUserMessageCount(userId);
+        console.log(userMessageCount)
         res.status(201).json(newMessage);
     } catch (error) {
-        console.error('Error saving message:', error);
-        res.status(500).json({ message: 'Error saving message' });
+        console.error('Error posting message:', error);
+        res.status(500).json({ message: 'Error posting message' });
+    }
+};
+
+export const getUserMessageCount = async (req, res) => {
+    try {
+        const users = await UserModel.find();
+        const userMessageCounts = {};
+        for (const user of users) {
+            const userId = user._id;
+            const messages = await MessageModel.find({ userId });
+            const messageCount = messages.length;
+            userMessageCounts[user.username] = messageCount;
+        }
+
+        res.status(200).json(userMessageCounts);
+    } catch (error) {
+        console.error('Error fetching user message count:', error);
+        res.status(500).json({ message: 'Error fetching user message count' });
+    }
+};
+
+
+
+
+
+export const getUserMessageCountController = async (req, res) => {
+    try {
+        const { userId } = req.body;
+        const messageCount = await getUserMessageCount(userId);
+        res.status(200).json({ userId, messageCount });
+    } catch (error) {
+        console.error('Error fetching user message count:', error);
+        res.status(500).json({ message: 'Error fetching user message count' });
     }
 };
 
@@ -58,11 +103,11 @@ export const getMessages = async (req, res) => {
 
 export const deleteMessage = async (req, res) => {
     const { messageId } = req.params;
-    console.log(messageId,'test');
+    console.log(messageId, 'test');
 
     try {
-        const deletedMessage = await MessageModel.findOneAndDelete({ _id: messageId });
-        console.log(deletedMessage,'text');
+        const deletedMessage = await MessageModel.findByIdAndDelete(messageId);
+        console.log(deletedMessage, 'text');
         if (!deletedMessage) {
             return res.status(404).json({ message: 'Message not found or could not be deleted' });
         }

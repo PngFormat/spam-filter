@@ -7,6 +7,7 @@ import UserPage from './pages/UserPage';
 import BlockedUsersPage from "../src/pages/BlockedUsersPage";
 import LoginForm from "./components/AuthForm";
 import styles from '../src/styles/App.module.css';
+import InfoPage from "./pages/InfoPage";
 
 
 const App = () => {
@@ -22,6 +23,8 @@ const App = () => {
                     <Route path="/chat" element={<ChatRoom />} />
                     <Route path="/users" element={<UserPage />} />
                     <Route path="/blocked-users" element={<BlockedUsersPage />} />
+                    <Route path="/info" element={<InfoPage />} />
+
                 </Routes>
                 <Footer />
             </div>
