@@ -49,7 +49,9 @@ const BlockedUsersPage = () => {
                     {blockedUsers.map(user => (
                         <li key={user._id} className={styles.userItem}>
                             <div className={styles.userInfo}>
-                                <Typography variant="h6" className={styles.username}>Username:</Typography>
+                                <Typography variant="h6" className={`${styles.username} ${styles.selectedText}`}>
+                                    Username:
+                                </Typography>
                                 <Typography variant="body1" className={styles.usernameValue}>{user.username}</Typography>
                                 <Typography variant="h6" className={styles.userId}>User ID:</Typography>
                                 <Typography variant="body1" className={styles.userIdValue}>{user._id}</Typography>

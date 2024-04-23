@@ -45,7 +45,6 @@ const ChatRoom: React.FC = () => {
                 }
             }).then(response => {
                 setCurrentUser(response.data);
-                console.log('fetch' + response.data)
                 setName(response.data.name);
             }).catch(error => {
                 console.error('Error fetching user data:', error);
@@ -54,14 +53,17 @@ const ChatRoom: React.FC = () => {
     }, [currentUser]);
 
     const handleRegister = useCallback((userData: { username: string; email: string; password: string }) => {
-        setShowRegistrationForm(false)
+        setShowRegistrationForm(false);
         axios.post('http://localhost:3001/api/register', userData)
             .then((response) => {
-                const newUser = response.data.user;
-                setCurrentUser(newUser);
-                localStorage.setItem('currentUser', JSON.stringify(newUser));
-                localStorage.setItem('authToken', response.data.token);
-                setName(name);
+                console.log(response.data); // Log the response data to check its structure
+
+                // Proceed with handling the response data as needed
+                const { authToken, user } = response.data; // Adjust this line based on the actual response structure
+                localStorage.setItem('authToken', authToken);
+                setCurrentUser(user);
+                localStorage.setItem('currentUser', JSON.stringify(user)); // Save user data to local storage
+                setName(user.username); // Set the username
             })
             .catch((error) => {
                 console.error('Error creating user:', error);

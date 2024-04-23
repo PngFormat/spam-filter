@@ -1,21 +1,37 @@
 import {BlacklistedReceiverModel, MessageModel, UserModel} from '../Schema.js';
 import { addToBlackList, filterMessage } from '../chatFilter.js';
-import { checkMessageLimit, checkUserProfanity } from "./messageMiddleware.js";
+import { checkUserProfanity } from "./messageMiddleware.js";
 import { BlacklistedUserModel } from "../Schema.js";
 
 const userBadWordCount = {};
 const lastMessageTime = {};
-const messageCount = {};
+let messageCount = 0;
 
-const userMessageCount = {};
+let userMessageCount = 0;
 
-const incrementUserMessageCount = async (userId) => {
-    if (!userMessageCount[userId]) {
-        userMessageCount[userId] = 1;
-    } else {
-        userMessageCount[userId]++;
-    }
+export const incrementUserMessageCount = async () => {
+    messageCount++;
 };
+
+
+const checkMessageLimit = (username, messageCount, lastMessageTime, currentTime, res) => {
+    if (messageCount && messageCount >= 3) {
+        if (lastMessageTime) {
+            const timeDifference = currentTime - lastMessageTime;
+            if (timeDifference < 10000) {
+                const timeLeft = Math.ceil((10000 - timeDifference) / 1000);
+                res.status(429).json({ message: `Please wait ${timeLeft} seconds before sending another message` });
+                return true;
+            }
+        } else {
+            lastMessageTime[username] = currentTime;
+            messageCount++;
+        }
+    }
+    return false;
+};
+
+
 
 export const postMessage = async (req, res) => {
     const { text, userId, username } = req.body;
@@ -23,7 +39,8 @@ export const postMessage = async (req, res) => {
 
     try {
         const currentTime = Date.now();
-        checkMessageLimit(username, messageCount, lastMessageTime, currentTime, res);
+        const limitReached = checkMessageLimit(username, messageCount, lastMessageTime[username], currentTime, res);
+        if (limitReached) return;
 
         await checkUserProfanity(username, userBadWordCount, addToBlackList, res);
 
@@ -49,8 +66,9 @@ export const postMessage = async (req, res) => {
         await newMessage.save();
         console.log('Message saved successfully:', newMessage);
 
-        await incrementUserMessageCount(userId);
-        console.log(userMessageCount)
+        await incrementUserMessageCount(); // Обновляем счетчик сообщений
+        console.log('number : ', messageCount);
+
         res.status(201).json(newMessage);
     } catch (error) {
         console.error('Error posting message:', error);

@@ -72,7 +72,6 @@ const Chat: React.FC<ChatProps> = ({ currentUser, username }) => {
 
         if (currentUser) {
             const profaneWordCount = countProfaneWords(newMessage);
-            console.log(profaneWordCount)
             if (profaneWordCount > 2) {
                 addToBlacklist(currentUser.username, 'Excessive profanity');
                 alert('Excessive profanity detected. Your message cannot be sent.');
