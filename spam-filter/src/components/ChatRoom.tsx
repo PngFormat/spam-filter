@@ -56,14 +56,12 @@ const ChatRoom: React.FC = () => {
         setShowRegistrationForm(false);
         axios.post('http://localhost:3001/api/register', userData)
             .then((response) => {
-                console.log(response.data); // Log the response data to check its structure
-
-                // Proceed with handling the response data as needed
-                const { authToken, user } = response.data; // Adjust this line based on the actual response structure
+                console.log(response.data);
+                const { authToken, user } = response.data;
                 localStorage.setItem('authToken', authToken);
                 setCurrentUser(user);
-                localStorage.setItem('currentUser', JSON.stringify(user)); // Save user data to local storage
-                setName(user.username); // Set the username
+                localStorage.setItem('currentUser', JSON.stringify(user));
+                setName(user.username);
             })
             .catch((error) => {
                 console.error('Error creating user:', error);
@@ -134,7 +132,7 @@ const ChatRoom: React.FC = () => {
             {currentUser && (
                 <div>
                     <Chat currentUser={currentUser} username={name} />
-                    <Button onClick={handleLogout}>Log out</Button>
+                    <Button variant="contained" color="warning" onClick={handleLogout}>Log out</Button>
                 </div>
             )}
         </Paper>

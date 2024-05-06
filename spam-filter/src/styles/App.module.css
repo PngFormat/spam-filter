@@ -7,3 +7,51 @@
     background-position: center;
     background-repeat: no-repeat;
 }
+
+.home {
+    text-align: center;
+    margin-top: 40px;
+    padding: 20px;
+    color: white;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s ease-in-out;
+    background-image: url("https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT-uc_l9bRg1tGoBVOxI0Bix9zoCXIsq409zI3-gTlpMrQocXjwT15OMy0CGo3TpaYPI_E&usqp=CAU");
+    background-repeat: no-repeat;
+    background-size: 100%;
+}
+
+
+.home:hover {
+    transform: scale(1.05);
+}
+
+@keyframes moveInLeft {
+    0% {
+        opacity: 0;
+        transform: translateX(-100px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+.home h1 {
+    animation: moveInLeft 1s ease-out;
+}
+
+@keyframes changeColor {
+    0% {
+        color: #333;
+    }
+    50% {
+        color: #ff6b6b;
+    }
+    100% {
+        color: #333;
+    }
+}
+.home h1 {
+    animation: changeColor 3s infinite;
+}

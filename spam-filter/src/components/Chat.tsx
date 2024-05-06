@@ -5,6 +5,7 @@ import axios from 'axios';
 import { v4 as uuidv4 } from 'uuid';
 import Filter from 'bad-words';
 import rusBadWords from '../rusbadwords.json';
+import Stickers from "./Stickers";
 
 interface Message {
     _id: string;
@@ -26,6 +27,7 @@ interface ChatProps {
 const Chat: React.FC<ChatProps> = ({ currentUser, username }) => {
     const classes = styles;
     const [messages, setMessages] = useState<Message[]>([]);
+    const [selectedSticker, setSelectedSticker] = useState<string | null>(null);
     const [newMessage, setNewMessage] = useState<string>('');
     const filter = new Filter();
     const rusFilter = new Set(rusBadWords);
@@ -49,6 +51,10 @@ const Chat: React.FC<ChatProps> = ({ currentUser, username }) => {
         };
     }, [messages]);
 
+    const handleStickerSelect = (stickerUrl: string) => {
+        setSelectedSticker(stickerUrl);
+    };
+
 
     const addToBlacklist = async (username: string, reason: string) => {
         try {
@@ -65,26 +71,34 @@ const Chat: React.FC<ChatProps> = ({ currentUser, username }) => {
     };
 
     const handleSendMessage = () => {
-        if (!newMessage.trim()) {
-            console.warn('Message text is empty');
+        if (!newMessage.trim() && !selectedSticker) {
+            console.warn('Message text is empty and no sticker is selected');
             return;
         }
+        let messageToSend = newMessage.trim();
+
+        if (selectedSticker) {
+            messageToSend += ` ${selectedSticker}`;
+        }
+
 
         if (currentUser) {
-            const profaneWordCount = countProfaneWords(newMessage);
+            const profaneWordCount = countProfaneWords(messageToSend);
+            // const profaneWordCount = countProfaneWords(newMessage);
             if (profaneWordCount > 2) {
                 addToBlacklist(currentUser.username, 'Excessive profanity');
                 alert('Excessive profanity detected. Your message cannot be sent.');
                 return;
             }
-
-            const censoredMessage = censorMessage(newMessage);
+            const censoredMessage = censorMessage(messageToSend);
+            // const censoredMessage = censorMessage(newMessage);
 
             axios.post('http://localhost:3001/api/messages', { text: censoredMessage, userId: currentUser.id, username })
                 .then(response => {
                     const newMessageObj: Message = response.data;
                     setMessages(prevMessages => [...prevMessages, newMessageObj]);
                     setNewMessage('');
+                    setSelectedSticker(null);
                 })
                 .catch(error => {
                     console.error('Error sending message:', error);
@@ -174,6 +188,7 @@ const Chat: React.FC<ChatProps> = ({ currentUser, username }) => {
                     value={newMessage}
                     onChange={e => setNewMessage(e.target.value)}
                 />
+                <Stickers onStickerSelect={handleStickerSelect} />
                 <Button variant="contained" color="primary" onClick={handleSendMessage} className={classes.sendButton}>
                     Send
                 </Button>
