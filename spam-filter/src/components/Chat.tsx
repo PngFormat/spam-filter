@@ -56,6 +56,11 @@ const Chat: React.FC<ChatProps> = ({ currentUser, username }) => {
     };
 
 
+    const isValidImageUrl = (url: string) => {
+        return /\.(jpeg|jpg|gif|png)$/.test(url);
+    };
+
+
     const addToBlacklist = async (username: string, reason: string) => {
         try {
             const authToken = localStorage.getItem('authToken');
@@ -169,7 +174,22 @@ const Chat: React.FC<ChatProps> = ({ currentUser, username }) => {
                     <li key={message._id} className={classes.messageItem}>
                         <div className={classes.messageContent}>
                             <strong>{message.username}: </strong>
-                            {message.text}
+                            {message.text.trim().startsWith('/static/media/') ? (
+                                <>
+                                    <img src={message.text} alt="Sticker" className={classes.stickerImage} width="30" height="30" />
+                                    <p>{message.text.split(' ').slice(1).join(' ')}</p>
+                                </>
+                            ) : (
+                                <span>
+                    {message.text.split(':').map((part, index) => (
+                        index % 2 === 0 ? (
+                            <span key={index}>{part}</span>
+                        ) : (
+                            <img key={index} src={`smiley-${part}.png`} alt={`Smiley ${part}`} />
+                        )
+                    ))}
+                </span>
+                            )}
                         </div>
                         {message.username === username && (
                             <Button variant="outlined" color="error" onClick={() => handleDeleteMessage(message._id)}>
@@ -178,6 +198,7 @@ const Chat: React.FC<ChatProps> = ({ currentUser, username }) => {
                         )}
                     </li>
                 ))}
+
             </ul>
 
             <div className={classes.inputContainer}>
