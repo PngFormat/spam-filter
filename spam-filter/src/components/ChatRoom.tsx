@@ -45,7 +45,6 @@ const ChatRoom: React.FC = () => {
                 }
             }).then(response => {
                 setCurrentUser(response.data);
-                console.log('fetch' + response.data)
                 setName(response.data.name);
             }).catch(error => {
                 console.error('Error fetching user data:', error);
@@ -54,14 +53,15 @@ const ChatRoom: React.FC = () => {
     }, [currentUser]);
 
     const handleRegister = useCallback((userData: { username: string; email: string; password: string }) => {
-        setShowRegistrationForm(false)
+        setShowRegistrationForm(false);
         axios.post('http://localhost:3001/api/register', userData)
             .then((response) => {
-                const newUser = response.data.user;
-                setCurrentUser(newUser);
-                localStorage.setItem('currentUser', JSON.stringify(newUser));
-                localStorage.setItem('authToken', response.data.token);
-                setName(name);
+                console.log(response.data);
+                const { authToken, user } = response.data;
+                localStorage.setItem('authToken', authToken);
+                setCurrentUser(user);
+                localStorage.setItem('currentUser', JSON.stringify(user));
+                setName(user.username);
             })
             .catch((error) => {
                 console.error('Error creating user:', error);
@@ -132,7 +132,7 @@ const ChatRoom: React.FC = () => {
             {currentUser && (
                 <div>
                     <Chat currentUser={currentUser} username={name} />
-                    <Button onClick={handleLogout}>Log out</Button>
+                    <Button variant="contained" color="warning" onClick={handleLogout}>Log out</Button>
                 </div>
             )}
         </Paper>

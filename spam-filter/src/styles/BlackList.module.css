@@ -1,41 +1,53 @@
 .root {
-    margin-top: 32px;
-    text-align: center;
-    background: linear-gradient(to bottom, #09213a, #37b7e7);
+    margin-top: 20px;
+    background-color: white;
+}
+
+.title {
+
+    margin-bottom: 20px;
 }
 
 .userList {
-    list-style: none;
+    list-style-type: none;
     padding: 0;
 }
 
 .userItem {
-    padding: 16px 0;
-    border-bottom: 1px solid #ccc;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
 }
 
-.userItem:last-child {
-    border-bottom: none;
-
+.userInfo {
+    flex: 1;
 }
 
-.username {
-    margin-right: 8px;
-}
-.title {
-    background-color: #f0f0f0;
-    padding: 8px;
-    border-radius: 4px;
+.username,
+.userId {
+    margin-bottom: 5px;
 }
 
-.userItem {
-    border: 1px solid #e74444;
-    border-radius: 4px;
-    padding: 16px;
+.usernameValue,
+.userIdValue {
+    margin-bottom: 10px;
+    font-weight: bold;
 }
 
 .unblockButton {
-    background-color: #007bff;
+    background-color: #f50057;
     color: #fff;
-    font-weight: bold;
+    transition: background-color 0.3s ease;
+}
+
+.unblockButton:hover {
+    background-color: #c51162;
+}
+
+.noUsersMessage {
+    margin-top: 20px;
 }

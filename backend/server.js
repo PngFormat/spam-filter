@@ -17,7 +17,8 @@ const app = express();
 import * as blacklistController from "./blackList/blackListController.js";
 import * as messageController from "./messages/messageController.js";
 import * as messageMiddleware from "./messages/messageController.js";
-import {loginUser, registerUser} from "./auth&register/authContorller.js";
+import {loginUser} from "./auth&register/authContorller.js";
+import {registerUser} from "./auth&register/registerController.js";
 const server = http.createServer(app);
 const io = new Server(server, {
     cors: {
@@ -98,31 +99,16 @@ app.delete('/api/blacklist/:userId', blacklistController.removeFromBlacklist);
 
 app.post('/api/messages', messageMiddleware.postMessage);
 app.get('/api/messages', messageController.getMessages);
+app.get('/api/user/message-count', messageController.getUserMessageCount);
 app.delete('/api/messages/:messageId', messageController.deleteMessage);
 
 app.post('/api/register', registerUser);
 app.post('/api/login', loginUser);
+app.post('/api/register', registerUser);
 
 
-app.post('/api/register', async (req, res) => {
-    const { username, email, password } = req.body;
 
-    try {
-        if (!password) {
-            return res.status(400).json({ message: 'Password is required' });
-        }
 
-        const hashedPassword = await bcrypt.hash(password, 10);
-        const newUser = new UserModel({ username, email, password: hashedPassword });
-
-        await newUser.save();
-
-        res.status(201).json({ message: 'User registered successfully' });
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: 'Error registering user' });
-    }
-});
 
 app.get('/api/users', async (req, res) => {
 

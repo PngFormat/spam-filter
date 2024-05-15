@@ -5,7 +5,8 @@ export interface IMessage {
 }
 
 export interface IUser {
-    id: number;
-    name: string;
-    nickname: string;
+    _id?: string;
+    username: string;
+    nickname?: string;
+    messageCount: number;
 }

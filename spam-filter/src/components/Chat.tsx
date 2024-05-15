@@ -5,6 +5,7 @@ import axios from 'axios';
 import { v4 as uuidv4 } from 'uuid';
 import Filter from 'bad-words';
 import rusBadWords from '../rusbadwords.json';
+import Stickers from "./Stickers";
 
 interface Message {
     _id: string;
@@ -23,9 +24,15 @@ interface ChatProps {
     username: string;
 }
 
+interface Sticker {
+    url: string;
+    name: string;
+}
+
 const Chat: React.FC<ChatProps> = ({ currentUser, username }) => {
     const classes = styles;
     const [messages, setMessages] = useState<Message[]>([]);
+    const [selectedSticker, setSelectedSticker] = useState<string | null>(null);
     const [newMessage, setNewMessage] = useState<string>('');
     const filter = new Filter();
     const rusFilter = new Set(rusBadWords);
@@ -49,6 +56,15 @@ const Chat: React.FC<ChatProps> = ({ currentUser, username }) => {
         };
     }, [messages]);
 
+    const handleStickerSelect = (sticker: Sticker) => {
+        setSelectedSticker(sticker.url);
+    };
+
+
+    const isValidImageUrl = (url: string) => {
+        return /\.(jpeg|jpg|gif|png)$/.test(url);
+    };
+
 
     const addToBlacklist = async (username: string, reason: string) => {
         try {
@@ -65,27 +81,34 @@ const Chat: React.FC<ChatProps> = ({ currentUser, username }) => {
     };
 
     const handleSendMessage = () => {
-        if (!newMessage.trim()) {
-            console.warn('Message text is empty');
+        if (!newMessage.trim() && !selectedSticker) {
+            console.warn('Message text is empty and no sticker is selected');
             return;
         }
+        let messageToSend = newMessage.trim();
+
+        if (selectedSticker) {
+            messageToSend += ` ${selectedSticker}`;
+        }
+
 
         if (currentUser) {
-            const profaneWordCount = countProfaneWords(newMessage);
-            console.log(profaneWordCount)
+            const profaneWordCount = countProfaneWords(messageToSend);
+            // const profaneWordCount = countProfaneWords(newMessage);
             if (profaneWordCount > 2) {
                 addToBlacklist(currentUser.username, 'Excessive profanity');
                 alert('Excessive profanity detected. Your message cannot be sent.');
                 return;
             }
-
-            const censoredMessage = censorMessage(newMessage);
+            const censoredMessage = censorMessage(messageToSend);
+            // const censoredMessage = censorMessage(newMessage);
 
             axios.post('http://localhost:3001/api/messages', { text: censoredMessage, userId: currentUser.id, username })
                 .then(response => {
                     const newMessageObj: Message = response.data;
                     setMessages(prevMessages => [...prevMessages, newMessageObj]);
                     setNewMessage('');
+                    setSelectedSticker(null);
                 })
                 .catch(error => {
                     console.error('Error sending message:', error);
@@ -156,7 +179,28 @@ const Chat: React.FC<ChatProps> = ({ currentUser, username }) => {
                     <li key={message._id} className={classes.messageItem}>
                         <div className={classes.messageContent}>
                             <strong>{message.username}: </strong>
-                            {message.text}
+                            {message.text.trim().startsWith('/static/media/') ? (
+                                <img src={message.text} alt="Sticker" className={classes.stickerImage} width="30"
+                                     height="30"/>
+                            ) : (
+                                message.text.split(' ').map((part, index) => (
+                                    part.startsWith('/static/media/') ? (
+                                        <img key={index} src={part} alt="Sticker" className={classes.stickerImage}
+                                             width="30" height="30"/>
+                                    ) : (
+                                        <React.Fragment key={index}>
+                                            {part.split(':').map((subPart, subIndex) => (
+                                                subIndex % 2 === 0 ? (
+                                                    <span key={subIndex}>{subPart}</span>
+                                                ) : (
+                                                    <img key={subIndex} src={`smiley-${subPart}.png`}
+                                                         alt={`Smiley ${subPart}`}/>
+                                                )
+                                            ))}
+                                        </React.Fragment>
+                                    )
+                                ))
+                            )}
                         </div>
                         {message.username === username && (
                             <Button variant="outlined" color="error" onClick={() => handleDeleteMessage(message._id)}>
@@ -165,6 +209,7 @@ const Chat: React.FC<ChatProps> = ({ currentUser, username }) => {
                         )}
                     </li>
                 ))}
+
             </ul>
 
             <div className={classes.inputContainer}>
@@ -175,6 +220,7 @@ const Chat: React.FC<ChatProps> = ({ currentUser, username }) => {
                     value={newMessage}
                     onChange={e => setNewMessage(e.target.value)}
                 />
+                <Stickers onStickerSelect={handleStickerSelect}/>
                 <Button variant="contained" color="primary" onClick={handleSendMessage} className={classes.sendButton}>
                     Send
                 </Button>
