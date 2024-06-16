@@ -8,27 +8,42 @@ const lastMessageTime = {};
 let messageCount = 0;
 
 let userMessageCount = 0;
+const userMessageData = {};
 
 export const incrementUserMessageCount = async () => {
     messageCount++;
 };
 
 
-const checkMessageLimit = (username, messageCount, lastMessageTime, currentTime, res) => {
-    if (messageCount && messageCount >= 3) {
-        if (lastMessageTime) {
-            const timeDifference = currentTime - lastMessageTime;
-            if (timeDifference < 10000) {
-                const timeLeft = Math.ceil((10000 - timeDifference) / 1000);
-                res.status(429).json({ message: `Please wait ${timeLeft} seconds before sending another message` });
-                return true;
-            }
-        } else {
-            lastMessageTime[username] = currentTime;
-            messageCount++;
-        }
+const checkMessageLimit = (username, res) => {
+    const currentTime = Date.now();
+
+    if (!userMessageData[username]) {
+        userMessageData[username] = {
+            messageCount: 1,
+            lastMessageTime: currentTime
+        };
+        return false;
     }
-    return false;
+
+    const { messageCount, lastMessageTime } = userMessageData[username];
+    const timeDifference = currentTime - lastMessageTime;
+
+    if (messageCount >= 3 && timeDifference < 10000) {
+        const timeLeft = Math.ceil((10000 - timeDifference) / 1000);
+        res.status(429).json({ message: `Please wait ${timeLeft} seconds before sending another message` });
+        return true;
+    } else if (timeDifference >= 10000) {
+        userMessageData[username] = {
+            messageCount: 1,
+            lastMessageTime: currentTime
+        };
+        return false;
+    } else {
+        userMessageData[username].messageCount += 1;
+        userMessageData[username].lastMessageTime = currentTime;
+        return false;
+    }
 };
 
 
@@ -66,7 +81,7 @@ export const postMessage = async (req, res) => {
         await newMessage.save();
         console.log('Message saved successfully:', newMessage);
 
-        await incrementUserMessageCount(); // Обновляем счетчик сообщений
+        await incrementUserMessageCount();
         console.log('number : ', messageCount);
 
         res.status(201).json(newMessage);

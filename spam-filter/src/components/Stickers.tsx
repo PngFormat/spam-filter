@@ -9,8 +9,8 @@ interface Props {
 
 const StickerPicker: React.FC<Props> = ({ onStickerSelect }) => {
     const stickers = [
-        { url: '/static/media/Stick.fc22ebc65d2b3e3721be.png', name: 'Stick' },
-        { url: '/static/media/star.ef7d3fdabde9fb172fd5.png', name: 'Star' }
+        { url: Stick, name: 'Stick' },
+        { url: Star, name: 'Star' }
     ];
 
     return (
