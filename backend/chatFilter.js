@@ -1,9 +1,11 @@
 import Filter from 'bad-words';
 import * as fs from "fs";
 import { BlacklistedUserModel } from './Schema.js';
+import natural from 'natural';
 
 let rusProfanityFilter;
 let rusBadWords;
+const tokenizer = new natural.WordTokenizer();
 
 fs.readFile('rusbadwords.json', 'utf-8', (err, data) => {
     if (err) {
@@ -11,7 +13,7 @@ fs.readFile('rusbadwords.json', 'utf-8', (err, data) => {
         return;
     }
     rusBadWords = JSON.parse(data);
-    rusProfanityFilter = new Filter({ list: rusBadWords, options: { caseSensitive: false } });
+    rusProfanityFilter = new Filter({ list: rusBadWords, placeHolder: '*' });
 });
 
 const cachedFilteredMessages = new Map();
@@ -27,14 +29,17 @@ export const filterMessage = (text) => {
     if (rusProfanityFilter && rusProfanityFilter.isProfane(text)) {
         console.log('Message contains inappropriate content:', text);
 
-        censoredText = text.replace(rusProfanityFilter, (match) => {
-            badWordCount++;
-            return '*'.repeat(match.length);
-        });
+        censoredText = tokenizer.tokenize(text).map((word) => {
+            if (rusProfanityFilter.isProfane(word)) {
+                badWordCount++;
+                return '*'.repeat(word.length);
+            }
+            return word;
+        }).join(' ');
     }
 
     const filteredResult = { censoredText, badWordCount };
-    cachedFilteredMessages.set(text, filteredResult); // Кэшируем результаты
+    cachedFilteredMessages.set(text, filteredResult);
 
     return filteredResult;
 };
@@ -56,10 +61,9 @@ export const addToBlackList = async (username, reason) => {
     }
 };
 
-
 export const updateBadWordsList = (newBadWordsList) => {
     rusBadWords = newBadWordsList;
-    rusProfanityFilter = new Filter({ list: rusBadWords, options: { caseSensitive: false } });
+    rusProfanityFilter = new Filter({ list: rusBadWords, placeHolder: '*' });
     cachedFilteredMessages.clear();
 };
 
@@ -70,7 +74,7 @@ export const filterMessagesInParallel = async (messages) => {
 
 export const setProfanityFilterOptions = (options) => {
     if (rusProfanityFilter) {
-        rusProfanityFilter = new Filter({ list: rusBadWords, options });
+        rusProfanityFilter = new Filter({ list: rusBadWords, ...options });
         cachedFilteredMessages.clear();
     }
 };

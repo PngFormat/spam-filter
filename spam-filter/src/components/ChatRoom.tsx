@@ -62,6 +62,7 @@ const ChatRoom: React.FC = () => {
                 setCurrentUser(user);
                 localStorage.setItem('currentUser', JSON.stringify(user));
                 setName(user.username);
+                localStorage.setItem('username', user.username);
             })
             .catch((error) => {
                 console.error('Error creating user:', error);
